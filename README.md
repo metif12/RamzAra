@@ -24,6 +24,16 @@ v install metif12.vtls
 Requires a V toolchain newer than 0.5.2 (uses `x.crypto.mldsa`-era
 stdlib APIs); CI builds V at the pinned commit (see `V_PIN`).
 
+Manual install (or before the registry lists the package):
+
+```sh
+git clone https://github.com/metif12/vtls ~/.vmodules/metif12/vtls
+```
+
+Note: `v install --git <url>` puts the repo at `~/.vmodules/vtls`
+(flat, no author segment); move it to `~/.vmodules/metif12/vtls` so
+`import metif12.vtls.*` resolves.
+
 ## Use
 
 ```v

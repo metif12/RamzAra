@@ -30,7 +30,10 @@ and used only to exercise EC public-key extraction.
   (prebuilt libs + header + demo)
 - [x] Docs: usage-v, usage-c, openssl-map, goals
 - [x] CI: fmt/vet/test matrix + OpenSSL interop + C-lib release
-- [ ] VPM publish (`v install metif12.vtls`) + version tag `v0.1.0`
+- [x] VPM install verified (`v install --git https://github.com/metif12/vtls`
+  resolves `metif12.vtls.*`); version tag `v0.1.0` pushed (triggers the
+  C-lib release). Registry search listing is a manual step on
+  vpm.vlang.io.
 
 ## v1.1 (next)
 
