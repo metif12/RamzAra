@@ -14,19 +14,34 @@ runs:
       id: vcache
       uses: actions/cache@v4
       with:
+        # NOTE: key carries a -v1 suffix on purpose: earlier revisions
+        # cached a different directory layout under the bare key, and a
+        # stale-layout restore breaks the build below.
         path: ~/vlang-build
-        key: vlang-${{ env.V_PIN }}-${{ runner.os }}
+        key: vlang-build-v1-${{ env.V_PIN }}-${{ runner.os }}
     - name: Clone V
       if: steps.vcache.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        # rm -rf first: a half-restored or half-cloned tree is worse
+        # than none (observed once on a Windows runner: clone reported
+        # 100% yet the very next `cd` found nothing there).
+        rm -rf ~/vlang-build
         git clone https://github.com/vlang/v ~/vlang-build
-        cd ~/vlang-build
+        cd ~/vlang-build || { echo 'clone produced no directory'; ls -la ~; exit 1; }
         git checkout "$V_PIN"
     - name: Build V
       shell: bash
       run: |
-        cd ~/vlang-build
+        # Belt and braces: if the checkout is absent (cache-hit with a
+        # broken restore), clone it here instead of failing on `cd`.
+        if [ ! -d ~/vlang-build ]; then
+          git clone https://github.com/vlang/v ~/vlang-build
+          cd ~/vlang-build
+          git checkout "$V_PIN"
+        else
+          cd ~/vlang-build
+        fi
         if [ -x ./v -o -x ./v.exe ]; then ./v --version 2>/dev/null || ./v.exe --version || true; fi
         if [ ! -x ./v ] && [ ! -x ./v.exe ]; then
           if [ "${{ runner.os }}" = "Windows" ]; then ./makev.bat; else make; fi

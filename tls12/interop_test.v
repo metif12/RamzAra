@@ -329,7 +329,7 @@ fn spawn_openssl_s_server(args []string) chan string {
 
 // drain_s_server_log prints the server log if it has finished, polling
 // briefly so a just-exited server still reports its reason.
-fn drain_s_server_log(mut ch chan string) {
+fn drain_s_server_log(ch chan string) {
 	mut msg := ''
 	for _ in 0 .. 20 {
 		if ch.try_pop(mut msg) == .success {
@@ -359,7 +359,7 @@ fn test_openssl_s_server_client() {
 		skip_verify: true
 	}) or { panic('dial openssl s_server: ${err}') }
 	c.handshake() or {
-		drain_s_server_log(mut log_ch)
+		drain_s_server_log(log_ch)
 		panic('hs vs openssl s_server: ${err}')
 	}
 	assert c.cipher_suite() == suite_ecdhe_rsa_aes128_gcm_sha256
@@ -814,7 +814,7 @@ fn test_openssl_ccm8_ecdsa() {
 	port := 18506
 	cert := testdata_path('ec_cert.pem')
 	key := testdata_path('ec_key.pem')
-	mut log_ch := chan string{cap: 1}
+	log_ch := chan string{cap: 1}
 	spawn run_openssl_s_server_ccm(bin, port, cert, key, log_ch)
 	time.sleep(1500 * time.millisecond)
 	mut c := dial('127.0.0.1', port, Config{
@@ -831,7 +831,7 @@ fn test_openssl_ccm8_ecdsa() {
 		// OpenSSL 4.x: `ciphers` shows CCM8 but s_client reports "no
 		// ciphers available" and s_server aborts with handshake_failure).
 		// The V-to-V loopback above still gates the CCM-8 record path.
-		drain_s_server_log(mut log_ch)
+		drain_s_server_log(log_ch)
 		println('skip openssl CCM8 test: handshake failed (likely disabled CCM8): ${err}')
 		return
 	}
@@ -865,7 +865,7 @@ fn test_openssl_no_ems_fallback() {
 	port := 18513
 	cert := testdata_path('rsa_cert.pem')
 	key := testdata_path('rsa_key.pem')
-	mut log_ch := chan string{cap: 1}
+	log_ch := chan string{cap: 1}
 	spawn run_openssl_s_server_no_ems(bin, port, cert, key, log_ch)
 	time.sleep(1500 * time.millisecond)
 	mut c := dial('127.0.0.1', port, Config{
@@ -873,7 +873,7 @@ fn test_openssl_no_ems_fallback() {
 		skip_verify: true
 	}) or { panic('dial vs no-EMS s_server failed: ${err}') }
 	c.handshake() or {
-		drain_s_server_log(mut log_ch)
+		drain_s_server_log(log_ch)
 		panic('handshake vs no-EMS s_server failed: ${err}')
 	}
 	assert !c.uses_ems(), 'server without EMS must complete on the plain-master path'

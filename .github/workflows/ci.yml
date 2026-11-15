@@ -107,5 +107,9 @@ jobs:
           openssl s_server -tls1_3 -accept 18444 -cert c.pem -key k.pem -naccept 1 &
           SRV=$!
           sleep 2
-          printf 'ping' | "$GITHUB_WORKSPACE/vtls-bin" s_client -connect 127.0.0.1:18444 -CAfile c.pem -brief
+          # -servername: our client verifies the hostname against the
+          # dialed host (like Go); the cert is for localhost, not the
+          # 127.0.0.1 we connect to. (openssl s_client skips this check
+          # unless -verify_hostname is given.)
+          printf 'ping' | "$GITHUB_WORKSPACE/vtls-bin" s_client -connect 127.0.0.1:18444 -servername localhost -CAfile c.pem -brief
           wait $SRV

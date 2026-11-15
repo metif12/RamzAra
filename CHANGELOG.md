@@ -21,5 +21,10 @@ Initial standalone release, extracted from `vlang/v` PR #32052
   `rsa` validity dates are UTC-normalized like `x509` (wrong on
   non-UTC boxes); `Config.ca_cert`/`ca_cert_pem` are honored in trust
   resolution (documented upstream but unwired); SEC1 output carries the
-  mandatory version INTEGER 1 (OpenSSL rejects the scalar there).
+  mandatory version INTEGER 1 (OpenSSL rejects the scalar there);
+  SEC1 P-256 curve OID bytes corrected to 1.2.840.10045.3.1.7
+  (OpenSSL 3.5 refused our keys as "unsupported"); serial numbers use
+  minimal DER encoding via `normalize_serial_bytes`/`fresh_serial`
+  (strip-then-mask failed our own parser ~1/500 certs) — the serial
+  fix is also carried upstream, the SEC1 items are toolkit-only.
 - CI: fmt gate, 3-OS test matrix, OpenSSL interop, C-lib release.

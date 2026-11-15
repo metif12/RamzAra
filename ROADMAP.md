@@ -70,12 +70,34 @@ and used only to exercise EC public-key extraction.
 - Load flakes, verdict reached: the rerun cleared the `x509`
   crosscheck `gen` and toolkit ecdsa failures (both pass locally
   under pinned V too), while slh loopback timeouts recurred on
-  windows/macos under 4-parallel load on different schemes — CPU
-  starvation, not a scheme bug. Fix: `VJOBS=2` for the suite.
+  windows/macos under load — root-caused to the pinned toolchain's
+  30s default socket read timeout vs slow-variant SLH-DSA signs in
+  non-prod builds (always the slow `*s` sets). Fix: 120s handshake
+  bound in `test_slh_loopback` plus `VJOBS=2` for general headroom.
 - Still open: ubuntu+macos `tls12` in-process openssl-interop
   ECONNRESET (deterministic across reruns; passes locally against
   OpenSSL 4.1.0, fails against runner 3.5.x). Next run carries
   s_server log capture on all three openssl tests to name it.
+- Compile every touched `_test.v` before pushing: an illegal `mut`
+  on a `chan` parameter broke the whole matrix for a full cycle
+  (channels are handles; pass by value even for `try_pop`).
+- The CLI `s_client` interop step must pass `-servername localhost`:
+  our client verifies the hostname against the dial host (like Go)
+  while `openssl s_client` skips that check without
+  `-verify_hostname`; connecting to 127.0.0.1 with a localhost cert
+  otherwise fails with `error_chain_untrusted`.
+- SLH-DSA loopback vs the pinned toolchain: every `TcpConn` there
+  carries a 30s default read timeout, and slow-variant signs in
+  non-prod builds exceed it under CI contention (windows 0919 twice,
+  macos 0913 once — always the slow `*s` sets, never logic).
+  `test_slh_loopback` now dials with a 120s handshake bound;
+  `VJOBS=2` stays for general headroom.
+- Windows `Build pinned V` flaked once (clone reported 100% yet the
+  next `cd` found nothing; the sibling test job built fine): the
+  clone step now wipes the target first and fails loudly with a
+  listing, the build step re-clones when the checkout is absent,
+  and the cache key carries a `-v1` suffix to isolate layout
+  changes.
 
 ## v1.1 (next)
 

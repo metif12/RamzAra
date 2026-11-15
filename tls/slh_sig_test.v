@@ -608,8 +608,14 @@ fn test_slh_loopback() {
 				roots: [ca_cert]
 			}
 		}
-		mut c := dial('127.0.0.1', port, client_cfg) or { panic('dial: ${err}') }
-		c.handshake() or { panic('client hs ${cs.scheme:04x}: ${err}') }
+		// Slow SLH-DSA signs (non-prod builds, loaded CI runners) can
+		// stall the server flight past the pinned toolchain's 30s
+		// default socket read timeout; allow the handshake room while
+		// keeping a hard bound so a real hang still fails loudly.
+		mut c := dial_with_timeouts('127.0.0.1', port, client_cfg, Timeouts{
+			connect_timeout_ms:   5000
+			handshake_timeout_ms: 120000
+		}) or { panic('client hs ${cs.scheme:04x}: ${err}') }
 		c.write('ping'.bytes()) or { panic(err) }
 		mut buf := []u8{len: 4}
 		n := c.read(mut buf) or { panic(err) }
