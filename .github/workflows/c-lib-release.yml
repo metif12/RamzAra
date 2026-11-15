@@ -32,16 +32,15 @@ jobs:
         run: |
           mkdir -p ~/.vmodules/metif12
           cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
-          rm -rf ~/.vmodules/metif12/vtls/vlang
       - name: Build shared library
         shell: bash
         run: |
           cd ~/.vmodules/metif12/vtls
           if [ "${{ runner.os }}" = "Windows" ]; then
-            "$GITHUB_WORKSPACE/vlang/v" -shared -cflags "-Wl,--export-all-symbols" -o "${{ matrix.out }}" capi/vtls_c.v
+            "$VBIN" -Wimpure-v -enable-globals -shared -cflags "-Wl,--export-all-symbols" -o "${{ matrix.out }}" capi/vtls_c.v
             dlltool -d c/vtls.def --dllname "${{ matrix.out }}" -l libvtls.dll.a
           else
-            "$GITHUB_WORKSPACE/vlang/v" -shared -o "${{ matrix.out }}" capi/vtls_c.v
+            "$VBIN" -Wimpure-v -enable-globals -shared -o "${{ matrix.out }}" capi/vtls_c.v
           fi
           ls -la "${{ matrix.out }}"
       - name: Verify C exports
@@ -60,7 +59,11 @@ jobs:
         run: |
           cd ~/.vmodules/metif12/vtls
           if [ "${{ runner.os }}" = "Windows" ]; then
-            gcc -o demo.exe c/demo.c -Ic -L. -lvtls
+            if command -v gcc >/dev/null; then
+              gcc -o demo.exe c/demo.c -Ic -L. -lvtls
+            else
+              "$HOME/vlang-build/thirdparty/tcc/tcc.exe" -o demo.exe c/demo.c -Ic vtls.dll
+            fi
           else
             cc -o demo c/demo.c -Ic -L. -lvtls
           fi

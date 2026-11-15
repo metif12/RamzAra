@@ -22,8 +22,8 @@ jobs:
         uses: ./.github/actions/build-v-pinned
       - name: Check formatting
         run: |
-          vbin="$GITHUB_WORKSPACE/vlang/v"
-          "$vbin" fmt -l tls/ tls12/ dtls12/ x509/ pkcs12/ slh_dsa/ rsa/ kat/ mlkem/ toolkit/ cmd/ capi/
+          files=$(find tls tls12 dtls12 x509 pkcs12 slh_dsa rsa kat mlkem toolkit cmd capi -name '*.v')
+          "$VBIN" fmt -l $files
 
   test:
     name: test (${{ matrix.os }})
@@ -41,12 +41,11 @@ jobs:
         run: |
           mkdir -p ~/.vmodules/metif12
           cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
-          rm -rf ~/.vmodules/metif12/vtls/vlang ~/.vmodules/metif12/vtls/vtls-bin*
       - name: Run full suite
         shell: bash
         run: |
           export VJOBS=4
-          "$GITHUB_WORKSPACE/vlang/v" -Wimpure-v -enable-globals -silent test \
+          "$VBIN" -Wimpure-v -enable-globals -silent test \
             ~/.vmodules/metif12/vtls/tls \
             ~/.vmodules/metif12/vtls/tls12 \
             ~/.vmodules/metif12/vtls/dtls12 \
@@ -75,10 +74,9 @@ jobs:
           openssl version
           mkdir -p ~/.vmodules/metif12
           cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
-          rm -rf ~/.vmodules/metif12/vtls/vlang ~/.vmodules/metif12/vtls/vtls-bin*
       - name: Build the CLI
         shell: bash
-        run: '"$GITHUB_WORKSPACE/vlang/v" -o "$GITHUB_WORKSPACE/vtls-bin" "$GITHUB_WORKSPACE/cmd/vtls"'
+        run: '"$VBIN" -Wimpure-v -enable-globals -o "$GITHUB_WORKSPACE/vtls-bin" "$GITHUB_WORKSPACE/cmd/vtls"'
       - name: vtls req + openssl verify
         shell: bash
         run: |

@@ -1,6 +1,6 @@
-# Binaries
-vtls.exe
-vtls
+# Binaries (root-anchored: a bare `vtls` pattern would ignore cmd/vtls/)
+/vtls.exe
+/vtls
 cmd/vtls/vtls
 cmd/vtls/vtls.exe
 capi/demo/demo

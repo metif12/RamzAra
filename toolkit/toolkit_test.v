@@ -50,13 +50,19 @@ fn test_toolkit_aliases() ! {
 }
 
 // loopback_echo runs one TLS 1.3 echo round with generated credentials.
+// Every step carries context: under parallel CI load the runner log
+// interleaves, and a bare propagation would not say which step failed.
 fn loopback_echo(key_type string) ! {
-	g := generate_self_signed(key_type, 'localhost', [], 30, false)!
+	g := generate_self_signed(key_type, 'localhost', [], 30, false) or {
+		return error('toolkit loopback ${key_type}: generate: ${err}')
+	}
 	mut l := tls.listen(tls.Config{
 		cert: g.cert_pem
 		key:  g.key_pem
-	})!
-	port := l.addr()!.port()!
+	}) or { return error('toolkit loopback ${key_type}: listen: ${err}') }
+	port := l.addr() or { return error('toolkit loopback ${key_type}: addr: ${err}') }.port() or {
+		return error('toolkit loopback ${key_type}: port: ${err}')
+	}
 	done := chan string{cap: 1}
 	spawn fn (mut l tls.Listener, done chan string) {
 		mut conn := l.accept() or {
@@ -82,15 +88,16 @@ fn loopback_echo(key_type string) ! {
 		ca_store:    tls.CertStore{
 			roots: [g.cert]
 		}
-	})!
-	c.handshake()!
-	c.write('ping'.bytes())!
+	}) or { return error('toolkit loopback ${key_type}: dial: ${err}') }
+	c.handshake() or { return error('toolkit loopback ${key_type}: handshake: ${err}') }
+	c.write('ping'.bytes()) or { return error('toolkit loopback ${key_type}: write: ${err}') }
 	mut buf := []u8{len: 4}
-	n := c.read(mut buf)!
+	n := c.read(mut buf) or { return error('toolkit loopback ${key_type}: read: ${err}') }
 	assert buf[..n] == 'ping'.bytes()
-	c.close()!
-	assert <-done == 'ok'
-	l.close()!
+	c.close() or { return error('toolkit loopback ${key_type}: close: ${err}') }
+	server_out := <-done
+	assert server_out == 'ok', 'toolkit loopback ${key_type}: server: ${server_out}'
+	l.close() or { return error('toolkit loopback ${key_type}: listener close: ${err}') }
 }
 
 fn test_toolkit_loopback_rsa() ! {

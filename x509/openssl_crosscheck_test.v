@@ -26,7 +26,7 @@ fn test_our_der_parses_under_openssl() {
 	if bin == '' {
 		return
 	}
-	key, priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('keygen') }
+	key, priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('keygen: ${err}') }
 	_ = key
 	now := time.now()
 	opts := CertGenOptions{
@@ -35,7 +35,7 @@ fn test_our_der_parses_under_openssl() {
 		not_before:  now
 		not_after:   now.add_days(30)
 	}
-	_, der := generate_self_signed(opts, priv) or { panic('gen') }
+	_, der := generate_self_signed(opts, priv) or { panic('gen: ${err}') }
 	tmp := os.temp_dir() + '/tls_cc_self.der'
 	os.write_file_array(tmp, der) or { panic('write') }
 	defer {
@@ -51,9 +51,9 @@ fn test_our_ca_signed_der_parses_under_openssl() {
 	if bin == '' {
 		return
 	}
-	ca_key, ca_priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('ca keygen') }
+	ca_key, ca_priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('ca keygen: ${err}') }
 	_ = ca_key
-	leaf_key, leaf_priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('leaf keygen') }
+	leaf_key, leaf_priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('leaf keygen: ${err}') }
 	_ = leaf_key
 	now := time.now()
 	ca_opts := CertGenOptions{
@@ -61,7 +61,7 @@ fn test_our_ca_signed_der_parses_under_openssl() {
 		not_before:  now
 		not_after:   now.add_days(3650)
 	}
-	ca_cert, _ := generate_self_signed(ca_opts, ca_priv) or { panic('ca gen') }
+	ca_cert, _ := generate_self_signed(ca_opts, ca_priv) or { panic('ca gen: ${err}') }
 	leaf_opts := CertGenOptions{
 		common_name: 'leaf.example.com'
 		dns_names:   ['leaf.example.com']
@@ -69,7 +69,7 @@ fn test_our_ca_signed_der_parses_under_openssl() {
 		not_after:   now.add_days(365)
 	}
 	_, leaf_der := generate_ca_signed(leaf_opts, leaf_priv, &ca_cert, ca_priv) or {
-		panic('leaf gen')
+		panic('leaf gen: ${err}')
 	}
 	tmp := os.temp_dir() + '/tls_cc_leaf.der'
 	os.write_file_array(tmp, leaf_der) or { panic('write') }
@@ -117,14 +117,14 @@ fn test_our_mldsa_der_parses_under_openssl() {
 	}
 	kinds := [mldsa.Kind.ml_dsa_44, .ml_dsa_65, .ml_dsa_87]
 	for kind in kinds {
-		priv := mldsa.PrivateKey.generate(kind) or { panic('keygen') }
+		priv := mldsa.PrivateKey.generate(kind) or { panic('keygen: ${err}') }
 		now := time.now()
 		_, der := generate_self_signed_mldsa(CertGenOptions{
 			common_name: 'mldsa-crosscheck.example.com'
 			dns_names:   ['mldsa-crosscheck.example.com']
 			not_before:  now
 			not_after:   now.add_days(30)
-		}, priv, kind) or { panic('gen') }
+		}, priv, kind) or { panic('gen: ${err}') }
 		tmp := os.temp_dir() + '/tls_mldsa_self.der'
 		os.write_file_array(tmp, der) or { panic('write') }
 		defer {
@@ -148,15 +148,15 @@ fn test_our_mldsa_ca_signed_verifies_under_openssl() {
 	}
 	kinds := [mldsa.Kind.ml_dsa_44, .ml_dsa_65, .ml_dsa_87]
 	for kind in kinds {
-		ca_priv := mldsa.PrivateKey.generate(kind) or { panic('ca keygen') }
+		ca_priv := mldsa.PrivateKey.generate(kind) or { panic('ca keygen: ${err}') }
 		now := time.now()
 		ca_cert, ca_der := generate_self_signed_mldsa(CertGenOptions{
 			common_name: 'Test ML-DSA CA'
 			not_before:  now.add_days(-1)
 			not_after:   now.add_days(3650)
 			is_ca:       true
-		}, ca_priv, kind) or { panic('ca gen') }
-		leaf_priv := mldsa.PrivateKey.generate(kind) or { panic('leaf keygen') }
+		}, ca_priv, kind) or { panic('ca gen: ${err}') }
+		leaf_priv := mldsa.PrivateKey.generate(kind) or { panic('leaf keygen: ${err}') }
 		leaf_cert, leaf_der := generate_ca_signed_mldsa(CertGenOptions{
 			common_name: 'leaf.example.com'
 			dns_names:   ['leaf.example.com']
