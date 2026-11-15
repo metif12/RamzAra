@@ -186,7 +186,10 @@ fn ec_curve_oid(kt KeyType) []u8 {
 	return match kt {
 		.ecdsa_p384 { [u8(0x2b), 0x81, 0x04, 0x00, 0x22] }
 		.ecdsa_p521 { [u8(0x2b), 0x81, 0x04, 0x00, 0x23] }
-		else { [u8(0x2b), 0x81, 0x04, 0x43, 0x01, 0x07] }
+		// prime256v1 (1.2.840.10045.3.1.7): 1.2 -> 0x2a, 840 -> 86 48,
+		// 10045 -> ce 3d. (A previous revision emitted the 1.3.132
+		// prefix here, which OpenSSL rejects as an unknown curve.)
+		else { [u8(0x2a), 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07] }
 	}
 }
 

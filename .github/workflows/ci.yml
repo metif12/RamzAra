@@ -44,7 +44,10 @@ jobs:
       - name: Run full suite
         shell: bash
         run: |
-          export VJOBS=4
+          # VJOBS=2: the suite is heavy pure-V crypto (SLH-DSA, ML-DSA);
+          # 4 parallel test binaries starved the loopback handshakes and
+          # produced timeout flakes on windows/macos runners.
+          export VJOBS=2
           "$VBIN" -Wimpure-v -enable-globals -silent test \
             ~/.vmodules/metif12/vtls/tls \
             ~/.vmodules/metif12/vtls/tls12 \
@@ -64,6 +67,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+    env:
+      # Git bash on Windows rewrites `/CN=...` to a filesystem path
+      # (MSYS path conversion); the req -subj flag needs it verbatim.
+      MSYS_NO_PATHCONV: 1
     steps:
       - uses: actions/checkout@v4
       - name: Build pinned V

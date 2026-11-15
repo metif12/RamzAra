@@ -314,9 +314,31 @@ fn test_loopback_ecdsa_gcm() {
 
 // ---------- openssl cross-checks ----------
 
-fn run_openssl_s_server(bin string, port int, cert string, key string) {
-	os.exec([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key', key, '-cipher',
-		'ECDHE-RSA-AES128-GCM-SHA256', '-sigalgs', 'RSA+SHA256', '-naccept', '1'])
+// spawn_openssl_s_server starts an openssl s_server and returns a channel
+// that receives its exit line once it stops. Draining is best-effort and
+// never blocks the test: on handshake failure the log shows whether the
+// server rejected the flight or never started.
+fn spawn_openssl_s_server(args []string) chan string {
+	ch := chan string{cap: 1}
+	spawn fn (args []string, ch chan string) {
+		res := os.exec(args)
+		ch <- 's_server exit=${res.exit_code} output:\n${res.output}'
+	}(args, ch)
+	return ch
+}
+
+// drain_s_server_log prints the server log if it has finished, polling
+// briefly so a just-exited server still reports its reason.
+fn drain_s_server_log(mut ch chan string) {
+	mut msg := ''
+	for _ in 0 .. 20 {
+		if ch.try_pop(mut msg) == .success {
+			eprintln(msg)
+			return
+		}
+		time.sleep(100 * time.millisecond)
+	}
+	eprintln('(s_server still running; no exit log yet)')
 }
 
 fn test_openssl_s_server_client() {
@@ -328,13 +350,18 @@ fn test_openssl_s_server_client() {
 	port := 18464
 	cert := testdata_path('rsa_cert.pem')
 	key := testdata_path('rsa_key.pem')
-	spawn run_openssl_s_server(bin, port, cert, key)
+	log_ch := spawn_openssl_s_server([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert',
+		cert, '-key', key, '-cipher', 'ECDHE-RSA-AES128-GCM-SHA256', '-sigalgs', 'RSA+SHA256',
+		'-naccept', '1'])
 	time.sleep(1500 * time.millisecond)
 	mut c := dial('127.0.0.1', port, Config{
 		server_name: 'localhost'
 		skip_verify: true
 	}) or { panic('dial openssl s_server: ${err}') }
-	c.handshake() or { panic('hs vs openssl s_server: ${err}') }
+	c.handshake() or {
+		drain_s_server_log(mut log_ch)
+		panic('hs vs openssl s_server: ${err}')
+	}
 	assert c.cipher_suite() == suite_ecdhe_rsa_aes128_gcm_sha256
 	// Our sealed app data must be readable by openssl (exercises our
 	// GCM seal path against a real peer); then a clean close.
@@ -765,9 +792,10 @@ fn test_loopback_ccm8() {
 	echo_check(port2, cfg2, 'ping-tls12-ecc-ccm8', suite_ecdhe_ecdsa_aes128_ccm8)
 }
 
-fn run_openssl_s_server_ccm(bin string, port int, cert string, key string) {
-	os.exec([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key', key, '-cipher',
-		'ECDHE-ECDSA-AES128-CCM8:@SECLEVEL=0', '-naccept', '1'])
+fn run_openssl_s_server_ccm(bin string, port int, cert string, key string, log_ch chan string) {
+	res := os.exec([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key', key,
+		'-cipher', 'ECDHE-ECDSA-AES128-CCM8:@SECLEVEL=0', '-naccept', '1'])
+	log_ch <- 's_server exit=${res.exit_code} output:\n${res.output}'
 }
 
 fn test_openssl_ccm8_ecdsa() {
@@ -786,7 +814,8 @@ fn test_openssl_ccm8_ecdsa() {
 	port := 18506
 	cert := testdata_path('ec_cert.pem')
 	key := testdata_path('ec_key.pem')
-	spawn run_openssl_s_server_ccm(bin, port, cert, key)
+	mut log_ch := chan string{cap: 1}
+	spawn run_openssl_s_server_ccm(bin, port, cert, key, log_ch)
 	time.sleep(1500 * time.millisecond)
 	mut c := dial('127.0.0.1', port, Config{
 		server_name:   'localhost'
@@ -802,6 +831,7 @@ fn test_openssl_ccm8_ecdsa() {
 		// OpenSSL 4.x: `ciphers` shows CCM8 but s_client reports "no
 		// ciphers available" and s_server aborts with handshake_failure).
 		// The V-to-V loopback above still gates the CCM-8 record path.
+		drain_s_server_log(mut log_ch)
 		println('skip openssl CCM8 test: handshake failed (likely disabled CCM8): ${err}')
 		return
 	}
@@ -812,9 +842,10 @@ fn test_openssl_ccm8_ecdsa() {
 
 // ---------- non-EMS fallback (server without extended_master_secret) ----------
 
-fn run_openssl_s_server_no_ems(bin string, port int, cert string, key string) {
-	os.exec([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key', key, '-cipher',
-		'ECDHE-RSA-AES128-GCM-SHA256', '-naccept', '1', '-no_ems'])
+fn run_openssl_s_server_no_ems(bin string, port int, cert string, key string, log_ch chan string) {
+	res := os.exec([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key', key,
+		'-cipher', 'ECDHE-RSA-AES128-GCM-SHA256', '-naccept', '1', '-no_ems'])
+	log_ch <- 's_server exit=${res.exit_code} output:\n${res.output}'
 }
 
 // test_openssl_no_ems_fallback checks completion against a server that
@@ -834,13 +865,17 @@ fn test_openssl_no_ems_fallback() {
 	port := 18513
 	cert := testdata_path('rsa_cert.pem')
 	key := testdata_path('rsa_key.pem')
-	spawn run_openssl_s_server_no_ems(bin, port, cert, key)
+	mut log_ch := chan string{cap: 1}
+	spawn run_openssl_s_server_no_ems(bin, port, cert, key, log_ch)
 	time.sleep(1500 * time.millisecond)
 	mut c := dial('127.0.0.1', port, Config{
 		server_name: 'localhost'
 		skip_verify: true
 	}) or { panic('dial vs no-EMS s_server failed: ${err}') }
-	c.handshake() or { panic('handshake vs no-EMS s_server failed: ${err}') }
+	c.handshake() or {
+		drain_s_server_log(mut log_ch)
+		panic('handshake vs no-EMS s_server failed: ${err}')
+	}
 	assert !c.uses_ems(), 'server without EMS must complete on the plain-master path'
 	assert c.master.len == 48
 	c.write('hello no-ems'.bytes()) or { panic('write vs no-EMS s_server: ${err}') }

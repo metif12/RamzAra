@@ -35,6 +35,48 @@ and used only to exercise EC public-key extraction.
   C-lib release). Registry search listing is a manual step on
   vpm.vlang.io.
 
+## CI hardening (from the first green-board runs)
+
+- `.gitignore` must not shadow source dirs: a bare `vtls` pattern
+  silently dropped `cmd/vtls/` from every push. Anchor binary patterns
+  (`/vtls`, `/vtls.exe`).
+- Build pinned V outside the checkout (`~/vlang-build`, `VBIN` env);
+  copying the workspace into `.vmodules` tripped over dangling
+  thirdparty symlinks (macOS `cp`).
+- `-shared` builds need `-enable-globals` (capi uses `__global`).
+- Windows `-shared` emits no named exports with GCC; link with
+  `-Wl,--export-all-symbols` and verify names via `objdump -p`.
+  `c/vtls.def` + `dlltool` cover MSVC import-lib creation.
+- Every test failure must print its cause: bare `panic('gen')` cost
+  a full round-trip to diagnose. Propagate `${err}` everywhere.
+- `v install --git <url>` installs flat (`~/.vmodules/<repo>`);
+  `import metif12.vtls.*` needs the nested layout — documented in
+  README; registry listing remains the preferred path.
+- Serial numbers: strip-then-mask produced a redundant leading zero
+  whenever the first random byte was exactly 0x80 (~1/256 draws);
+  the parser rightly rejects that shape, so issuance failed its own
+  round-trip about once per 500 certs (one Windows CI hit). Fix:
+  `normalize_serial_bytes` strips zeros then *prepends* a zero byte
+  when the top bit is set; `test_pki_generate_serial_minimal_encoding`
+  locks vectors plus a 64-draw property loop.
+- SEC1 keys: the hardcoded P-256 curve OID was wrong (1.3.132 prefix
+  instead of 1.2.840.10045.3.1.7), so OpenSSL 3.5 refused our `k.pem`
+  with "unsupported" while our own loader (which skips the OID) was
+  happy. Fixed bytes verified with `openssl pkey` + a live
+  `s_server`/`s_client` handshake. P-384/P-521 prefixes were correct.
+- Windows Git bash rewrites `/CN=...` to a path (MSYS conversion),
+  which broke `req -subj /CN=localhost` only on that runner.
+  Fix: `MSYS_NO_PATHCONV: 1` on the interop job.
+- Load flakes, verdict reached: the rerun cleared the `x509`
+  crosscheck `gen` and toolkit ecdsa failures (both pass locally
+  under pinned V too), while slh loopback timeouts recurred on
+  windows/macos under 4-parallel load on different schemes — CPU
+  starvation, not a scheme bug. Fix: `VJOBS=2` for the suite.
+- Still open: ubuntu+macos `tls12` in-process openssl-interop
+  ECONNRESET (deterministic across reruns; passes locally against
+  OpenSSL 4.1.0, fails against runner 3.5.x). Next run carries
+  s_server log capture on all three openssl tests to name it.
+
 ## v1.1 (next)
 
 - C API: TLS 1.2 + DTLS 1.2 bindings, mTLS parameters, keylog hook.
