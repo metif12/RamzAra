@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.bat eol=crlf
+
+*.der binary
+*.p12 binary
+
+*.v linguist-language=V
+*.vv linguist-language=V
+*.vsh linguist-language=V
+v.mod linguist-language=V

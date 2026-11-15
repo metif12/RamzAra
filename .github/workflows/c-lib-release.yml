@@ -1,0 +1,99 @@
+# C library release: prebuilt shared libs + stable header + demo.
+# Trigger: push a tag like v0.1.0. Attaches per-OS artifacts to the release.
+name: C library release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  V_PIN: bf074d87e6bd4206c8967fcf18b10004e7c85716
+
+jobs:
+  build:
+    name: lib (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            out: libvtls.so
+          - os: windows-latest
+            out: vtls.dll
+          - os: macos-latest
+            out: libvtls.dylib
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned V
+        uses: ./.github/actions/build-v-pinned
+      - name: Install package into .vmodules
+        shell: bash
+        run: |
+          mkdir -p ~/.vmodules/metif12
+          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
+          rm -rf ~/.vmodules/metif12/vtls/vlang
+      - name: Build shared library
+        shell: bash
+        run: |
+          cd ~/.vmodules/metif12/vtls
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            "$GITHUB_WORKSPACE/vlang/v" -shared -cflags "-Wl,--export-all-symbols" -o "${{ matrix.out }}" capi/vtls_c.v
+            dlltool -d c/vtls.def --dllname "${{ matrix.out }}" -l libvtls.dll.a
+          else
+            "$GITHUB_WORKSPACE/vlang/v" -shared -o "${{ matrix.out }}" capi/vtls_c.v
+          fi
+          ls -la "${{ matrix.out }}"
+      - name: Verify C exports
+        shell: bash
+        run: |
+          cd ~/.vmodules/metif12/vtls
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            objdump -p "${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            nm -g "${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+          else
+            nm -D --defined-only "${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+          fi
+      - name: Build C demo (link check)
+        shell: bash
+        run: |
+          cd ~/.vmodules/metif12/vtls
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            gcc -o demo.exe c/demo.c -Ic -L. -lvtls
+          else
+            cc -o demo c/demo.c -Ic -L. -lvtls
+          fi
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.out }}
+          path: |
+            ~/.vmodules/metif12/vtls/${{ matrix.out }}
+            ~/.vmodules/metif12/vtls/libvtls.dll.a
+            c/vtls.h
+            c/vtls.def
+            c/demo.c
+
+  release:
+    name: publish release
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/libvtls.so/libvtls.so
+            dist/vtls.dll/vtls.dll
+            dist/vtls.dll/libvtls.dll.a
+            dist/libvtls.dylib/libvtls.dylib
+            c/vtls.h
+            c/vtls.def
+            c/demo.c

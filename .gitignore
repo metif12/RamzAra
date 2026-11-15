@@ -1,0 +1,16 @@
+# Binaries
+vtls.exe
+vtls
+cmd/vtls/vtls
+cmd/vtls/vtls.exe
+capi/demo/demo
+capi/demo/demo.exe
+# Build output
+build/
+# C artifacts from `v -o`
+*.c.bak
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

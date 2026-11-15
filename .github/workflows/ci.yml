@@ -1,0 +1,106 @@
+# CI: fmt gate, full test matrix, OpenSSL interop.
+#
+# The package needs a V toolchain newer than 0.5.2 (it uses
+# x.crypto.mldsa/mlkem-era stdlib APIs), so CI builds V from source at a
+# pinned commit (cached). Bump V_PIN when the sync base moves.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  V_PIN: bf074d87e6bd4206c8967fcf18b10004e7c85716
+
+jobs:
+  fmt:
+    name: fmt clean
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned V
+        uses: ./.github/actions/build-v-pinned
+      - name: Check formatting
+        run: |
+          vbin="$GITHUB_WORKSPACE/vlang/v"
+          "$vbin" fmt -l tls/ tls12/ dtls12/ x509/ pkcs12/ slh_dsa/ rsa/ kat/ mlkem/ toolkit/ cmd/ capi/
+
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned V
+        uses: ./.github/actions/build-v-pinned
+      - name: Install package into .vmodules
+        shell: bash
+        run: |
+          mkdir -p ~/.vmodules/metif12
+          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
+          rm -rf ~/.vmodules/metif12/vtls/vlang ~/.vmodules/metif12/vtls/vtls-bin*
+      - name: Run full suite
+        shell: bash
+        run: |
+          export VJOBS=4
+          "$GITHUB_WORKSPACE/vlang/v" -Wimpure-v -enable-globals -silent test \
+            ~/.vmodules/metif12/vtls/tls \
+            ~/.vmodules/metif12/vtls/tls12 \
+            ~/.vmodules/metif12/vtls/dtls12 \
+            ~/.vmodules/metif12/vtls/x509 \
+            ~/.vmodules/metif12/vtls/pkcs12 \
+            ~/.vmodules/metif12/vtls/slh_dsa \
+            ~/.vmodules/metif12/vtls/rsa \
+            ~/.vmodules/metif12/vtls/kat \
+            ~/.vmodules/metif12/vtls/mlkem \
+            ~/.vmodules/metif12/vtls/toolkit
+
+  openssl-interop:
+    name: openssl interop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned V
+        uses: ./.github/actions/build-v-pinned
+      - name: Set up OpenSSL
+        shell: bash
+        run: |
+          openssl version
+          mkdir -p ~/.vmodules/metif12
+          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
+          rm -rf ~/.vmodules/metif12/vtls/vlang ~/.vmodules/metif12/vtls/vtls-bin*
+      - name: Build the CLI
+        shell: bash
+        run: '"$GITHUB_WORKSPACE/vlang/v" -o "$GITHUB_WORKSPACE/vtls-bin" "$GITHUB_WORKSPACE/cmd/vtls"'
+      - name: vtls req + openssl verify
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/vtls-bin" req -newkey ec:p-256 -keyout k.pem -out c.pem -subj /CN=localhost -days 30
+          openssl x509 -in c.pem -noout -subject
+          "$GITHUB_WORKSPACE/vtls-bin" verify -CAfile c.pem c.pem -hostname localhost
+      - name: vtls s_server vs openssl s_client
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/vtls-bin" s_server -accept 18443 -cert c.pem -key k.pem -naccept 1 &
+          SRV=$!
+          sleep 2
+          printf 'ping' | openssl s_client -connect 127.0.0.1:18443 -CAfile c.pem -quiet
+          wait $SRV
+      - name: openssl s_server vs vtls s_client
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          openssl s_server -tls1_3 -accept 18444 -cert c.pem -key k.pem -naccept 1 &
+          SRV=$!
+          sleep 2
+          printf 'ping' | "$GITHUB_WORKSPACE/vtls-bin" s_client -connect 127.0.0.1:18444 -CAfile c.pem -brief
+          wait $SRV
