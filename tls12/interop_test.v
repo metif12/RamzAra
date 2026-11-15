@@ -314,16 +314,40 @@ fn test_loopback_ecdsa_gcm() {
 
 // ---------- openssl cross-checks ----------
 
+// sh_quote single-quotes one shell argument.
+fn sh_quote(arg string) string {
+	return "'" + arg.replace("'", "'\\''") + "'"
+}
+
+// s_server_cmd wraps an openssl s_server invocation so its stdin stays
+// open: OpenSSL 3.x quits on stdin EOF, and os.exec inherits the usually
+// closed harness stdin — the server would accept-then-quit instantly
+// (0 accepts, exit 0) and our client sees ECONNRESET. `sleep 30 &` holds
+// the pipe open; `exec` replaces the shell so os.exec still waits on
+// s_server itself. Without a shell (rare), fall back to a direct exec.
+fn s_server_cmd(args []string) []string {
+	sh := os.find_abs_path_of_executable('sh') or { return args }
+	mut quoted := []string{cap: args.len}
+	for a in args {
+		quoted << sh_quote(a)
+	}
+	return [sh, '-c', 'sleep 30 & exec ' + quoted.join(' ')]
+}
+
+// run_s_server_logged execs s_server (stdin held open) and reports its
+// exit line on log_ch once it stops.
+fn run_s_server_logged(args []string, log_ch chan string) {
+	res := os.exec(s_server_cmd(args))
+	log_ch <- 's_server exit=${res.exit_code} output:\n${res.output}'
+}
+
 // spawn_openssl_s_server starts an openssl s_server and returns a channel
 // that receives its exit line once it stops. Draining is best-effort and
 // never blocks the test: on handshake failure the log shows whether the
 // server rejected the flight or never started.
 fn spawn_openssl_s_server(args []string) chan string {
 	ch := chan string{cap: 1}
-	spawn fn (args []string, ch chan string) {
-		res := os.exec(args)
-		ch <- 's_server exit=${res.exit_code} output:\n${res.output}'
-	}(args, ch)
+	spawn run_s_server_logged(args, ch)
 	return ch
 }
 
@@ -793,9 +817,8 @@ fn test_loopback_ccm8() {
 }
 
 fn run_openssl_s_server_ccm(bin string, port int, cert string, key string, log_ch chan string) {
-	res := os.exec([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key', key,
-		'-cipher', 'ECDHE-ECDSA-AES128-CCM8:@SECLEVEL=0', '-naccept', '1'])
-	log_ch <- 's_server exit=${res.exit_code} output:\n${res.output}'
+	run_s_server_logged([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key',
+		key, '-cipher', 'ECDHE-ECDSA-AES128-CCM8:@SECLEVEL=0', '-naccept', '1'], log_ch)
 }
 
 fn test_openssl_ccm8_ecdsa() {
@@ -843,9 +866,8 @@ fn test_openssl_ccm8_ecdsa() {
 // ---------- non-EMS fallback (server without extended_master_secret) ----------
 
 fn run_openssl_s_server_no_ems(bin string, port int, cert string, key string, log_ch chan string) {
-	res := os.exec([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key', key,
-		'-cipher', 'ECDHE-RSA-AES128-GCM-SHA256', '-naccept', '1', '-no_ems'])
-	log_ch <- 's_server exit=${res.exit_code} output:\n${res.output}'
+	run_s_server_logged([bin, 's_server', '-tls1_2', '-accept', port.str(), '-cert', cert, '-key',
+		key, '-cipher', 'ECDHE-RSA-AES128-GCM-SHA256', '-naccept', '1', '-no_ems'], log_ch)
 }
 
 // test_openssl_no_ems_fallback checks completion against a server that

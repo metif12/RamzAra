@@ -74,10 +74,16 @@ and used only to exercise EC public-key extraction.
   30s default socket read timeout vs slow-variant SLH-DSA signs in
   non-prod builds (always the slow `*s` sets). Fix: 120s handshake
   bound in `test_slh_loopback` plus `VJOBS=2` for general headroom.
-- Still open: ubuntu+macos `tls12` in-process openssl-interop
-  ECONNRESET (deterministic across reruns; passes locally against
-  OpenSSL 4.1.0, fails against runner 3.5.x). Next run carries
-  s_server log capture on all three openssl tests to name it.
+- Root-caused the ubuntu+macos `tls12` openssl-interop ECONNRESET:
+  OpenSSL 3.x `s_server` quits on stdin EOF, and `os.exec` inherits
+  the closed harness stdin — the server accept-then-quits instantly
+  (0 accepts, exit 0) before our ClientHello arrives; 4.1 stays up,
+  which is why it passed locally. Reproduced locally against
+  OpenSSL 3.0 (MITM proxy proved the server EOF'd before our flight
+  arrived; holding stdin open made the same handshake succeed).
+  Fix: spawn via `sh -c 'sleep 30 & exec ...'` (`s_server_cmd`;
+  direct-exec fallback when no shell). The s_server exit/output
+  capture stays as permanent diagnostics.
 - Compile every touched `_test.v` before pushing: an illegal `mut`
   on a `chan` parameter broke the whole matrix for a full cycle
   (channels are handles; pass by value even for `try_pop`).
