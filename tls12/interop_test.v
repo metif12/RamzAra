@@ -320,22 +320,32 @@ fn sh_quote(arg string) string {
 }
 
 // s_server_cmd wraps an openssl s_server invocation so its stdin stays
-// open: OpenSSL 3.x quits on stdin EOF, and os.exec inherits the usually
-// closed harness stdin — the server would accept-then-quit instantly
-// (0 accepts, exit 0) and our client sees ECONNRESET. `sleep 30 &` holds
-// the pipe open; `exec` replaces the shell so os.exec still waits on
-// s_server itself. Without a shell (rare), fall back to a direct exec.
+// open where it needs to: OpenSSL 3.x quits on stdin EOF, and os.exec
+// inherits the usually closed harness stdin — the server would
+// accept-then-quit instantly (0 accepts, exit 0) and our client sees
+// ECONNRESET. On Unix, `sleep 30 |` pipes sleep (no output, stays open
+// 30s) into s_server's stdin; `exec` replaces the shell so os.exec still
+// waits on s_server itself. (Note: `sleep 30 & exec ...` backgrounds
+// sleep WITHOUT piping it — verified no-op: `sh -c 'sleep 5 & exec cat'`
+// with stdin at /dev/null quits exit=0, while the `|` form stays up.)
+// On Windows the direct form is used: Windows runners stay green with an
+// inherited stdin, while MSYS2/native shell pipes misbehave there
+// (pipe-fed s_server quits or stalls). Without sh (rare), direct exec.
 fn s_server_cmd(args []string) []string {
-	sh := os.find_abs_path_of_executable('sh') or { return args }
-	mut quoted := []string{cap: args.len}
-	for a in args {
-		quoted << sh_quote(a)
+	$if windows {
+		return args
+	} $else {
+		sh := os.find_abs_path_of_executable('sh') or { return args }
+		mut quoted := []string{cap: args.len}
+		for a in args {
+			quoted << sh_quote(a)
+		}
+		return [sh, '-c', 'sleep 30 | exec ' + quoted.join(' ')]
 	}
-	return [sh, '-c', 'sleep 30 & exec ' + quoted.join(' ')]
 }
 
-// run_s_server_logged execs s_server (stdin held open) and reports its
-// exit line on log_ch once it stops.
+// run_s_server_logged execs s_server (stdin held open where needed) and
+// reports its exit line on log_ch once it stops.
 fn run_s_server_logged(args []string, log_ch chan string) {
 	res := os.exec(s_server_cmd(args))
 	log_ch <- 's_server exit=${res.exit_code} output:\n${res.output}'

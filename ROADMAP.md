@@ -81,9 +81,12 @@ and used only to exercise EC public-key extraction.
   which is why it passed locally. Reproduced locally against
   OpenSSL 3.0 (MITM proxy proved the server EOF'd before our flight
   arrived; holding stdin open made the same handshake succeed).
-  Fix: spawn via `sh -c 'sleep 30 & exec ...'` (`s_server_cmd`;
-  direct-exec fallback when no shell). The s_server exit/output
-  capture stays as permanent diagnostics.
+  Fix (`s_server_cmd`): Unix spawns via `sh -c 'sleep 30 | exec ...'`
+  (pipe holds stdin open; proven: `&`-background form is a no-op that
+  still quits exit=0, `|` form stays up and completes HS+appdata vs
+  OpenSSL 3.0); Windows spawns direct (runners stay green with inherited
+  stdin; MSYS2/native shell pipes misbehave there). The s_server
+  exit/output capture stays as permanent diagnostics.
 - Compile every touched `_test.v` before pushing: an illegal `mut`
   on a `chan` parameter broke the whole matrix for a full cycle
   (channels are handles; pass by value even for `try_pop`).
