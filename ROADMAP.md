@@ -100,6 +100,14 @@ and used only to exercise EC public-key extraction.
   all RSA-cert paths). Now calls `x509.fresh_serial` (`pub` since);
   CRL-number path verified safe (forces non-zero). Break-fix: old
   logic 3/2000 non-minimal, new 0/2000; 15/15 RSA round-trips.
+- Release workflow (`c-lib-release.yml`, runs on `v*` tags): the v0.1.1
+  tag-push run failed only at `Upload artifact` on Windows —
+  `~/.vmodules/...` outputs sit outside the workspace root and break
+  upload-artifact's rootDirectory computation (ubuntu passed the same
+  mix by LCA luck). Fix: emit `-o $GITHUB_WORKSPACE/<lib>`, verify and
+  link against the workspace copy, upload workspace-relative paths
+  (same pattern as the `vtls-bin` CLI build). macOS never failed on
+  its own (canceled by fail-fast); v0.1.2 re-runs everything.
 - CI workflow carries the same stdin-EOF bug class: the interop step's
   bare `openssl s_server ... &` shares the step stdin, which runners
   don't guarantee open (ACCEPT then instant DONE, 0 accepts — flaked

@@ -35,29 +35,31 @@ jobs:
       - name: Build shared library
         shell: bash
         run: |
+          # Emit into $GITHUB_WORKSPACE (not ~/.vmodules): upload-artifact
+          # requires every path under one workspace root, and absolute
+          # home-dir paths break its rootDirectory computation on Windows.
           cd ~/.vmodules/metif12/vtls
           if [ "${{ runner.os }}" = "Windows" ]; then
-            "$VBIN" -Wimpure-v -enable-globals -shared -cflags "-Wl,--export-all-symbols" -o "${{ matrix.out }}" capi/vtls_c.v
-            dlltool -d c/vtls.def --dllname "${{ matrix.out }}" -l libvtls.dll.a
+            "$VBIN" -Wimpure-v -enable-globals -shared -cflags "-Wl,--export-all-symbols" -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/vtls_c.v
+            dlltool -d c/vtls.def --dllname "${{ matrix.out }}" -l "$GITHUB_WORKSPACE/libvtls.dll.a"
           else
-            "$VBIN" -Wimpure-v -enable-globals -shared -o "${{ matrix.out }}" capi/vtls_c.v
+            "$VBIN" -Wimpure-v -enable-globals -shared -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/vtls_c.v
           fi
-          ls -la "${{ matrix.out }}"
+          ls -la "$GITHUB_WORKSPACE/${{ matrix.out }}"
       - name: Verify C exports
         shell: bash
         run: |
-          cd ~/.vmodules/metif12/vtls
           if [ "${{ runner.os }}" = "Windows" ]; then
-            objdump -p "${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+            objdump -p "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            nm -g "${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+            nm -g "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
           else
-            nm -D --defined-only "${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+            nm -D --defined-only "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
           fi
       - name: Build C demo (link check)
         shell: bash
         run: |
-          cd ~/.vmodules/metif12/vtls
+          cd "$GITHUB_WORKSPACE"
           if [ "${{ runner.os }}" = "Windows" ]; then
             if command -v gcc >/dev/null; then
               gcc -o demo.exe c/demo.c -Ic -L. -lvtls
@@ -72,8 +74,8 @@ jobs:
         with:
           name: ${{ matrix.out }}
           path: |
-            ~/.vmodules/metif12/vtls/${{ matrix.out }}
-            ~/.vmodules/metif12/vtls/libvtls.dll.a
+            ${{ matrix.out }}
+            libvtls.dll.a
             c/vtls.h
             c/vtls.def
             c/demo.c
