@@ -1,7 +1,6 @@
 // Self-signed X.509 certificate generation for RSA keys.
 module rsa
 
-import crypto.rand
 import crypto.sha256
 import metif12.vtls.x509
 import time
@@ -67,11 +66,10 @@ fn cert_name_der(common_name string) []u8 {
 // the matching public key.
 pub fn generate_self_signed(opts x509.CertGenOptions, key PrivateKey) !(x509.Certificate, []u8) {
 	pk := key.public_key()
-	mut serial := rand.bytes(8)!
-	for serial.len > 1 && serial[0] == 0 {
-		serial = serial[1..].clone()
-	}
-	serial[0] &= 0x7f
+	// Minimal DER serial via the shared helper: the old strip-then-mask
+	// left a redundant leading zero when the first byte was exactly
+	// 0x80, which parse_der correctly rejects (~1/256 draws).
+	serial := x509.fresh_serial()!
 
 	name_der := cert_name_der(opts.common_name)
 

@@ -27,4 +27,6 @@ Initial standalone release, extracted from `vlang/v` PR #32052
   minimal DER encoding via `normalize_serial_bytes`/`fresh_serial`
   (strip-then-mask failed our own parser ~1/500 certs) — the serial
   fix is also carried upstream, the SEC1 items are toolkit-only.
+  (Follow-up: the standalone `rsa/cert_gen.v` copy kept the old
+  strip-then-mask and now calls `x509.fresh_serial` instead.)
 - CI: fmt gate, 3-OS test matrix, OpenSSL interop, C-lib release.

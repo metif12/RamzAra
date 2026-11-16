@@ -206,7 +206,7 @@ fn bc_ext(is_ca bool) []u8 {
 // leave a redundant leading zero whenever the first byte is exactly 0x80
 // (~1/256 draws); the parser correctly rejects that as non-minimal, so a
 // masked generator fails its own round-trip once every few hundred certs.
-fn normalize_serial_bytes(raw []u8) []u8 {
+pub fn normalize_serial_bytes(raw []u8) []u8 {
 	mut serial := raw.clone()
 	for serial.len > 1 && serial[0] == 0 {
 		serial = serial[1..].clone()
@@ -218,7 +218,7 @@ fn normalize_serial_bytes(raw []u8) []u8 {
 }
 
 // fresh_serial returns 8 random bytes as minimal DER INTEGER content.
-fn fresh_serial() ![]u8 {
+pub fn fresh_serial() ![]u8 {
 	return normalize_serial_bytes(rand.bytes(8) or { return err })
 }
 

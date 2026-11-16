@@ -94,6 +94,12 @@ and used only to exercise EC public-key extraction.
   with a 3s-delayed echo server (EOF form: 0 echoes; hold-open form: 1).
   Unix `run_s_client` now uses `(echo ping-tls12-ssl; sleep 10) | ...`;
   Windows unchanged (green in CI).
+- Serial follow-up: the standalone `rsa/cert_gen.v` kept the old
+  strip-then-mask (missed in the first port) and flaked the same way
+  (ubuntu toolkit RSA round-trip + both CLI interop steps in one run —
+  all RSA-cert paths). Now calls `x509.fresh_serial` (`pub` since);
+  CRL-number path verified safe (forces non-zero). Break-fix: old
+  logic 3/2000 non-minimal, new 0/2000; 15/15 RSA round-trips.
 - Compile every touched `_test.v` before pushing: an illegal `mut`
   on a `chan` parameter broke the whole matrix for a full cycle
   (channels are handles; pass by value even for `try_pop`).
