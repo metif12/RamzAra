@@ -429,14 +429,19 @@ fn test_openssl_s_client_server() {
 
 // run_s_client connects openssl s_client, sends a probe line on stdin and
 // returns the result. Stdin feeding needs a shell pipe, so platform shells
-// are used (powershell on Windows, sh elsewhere).
+// are used (powershell on Windows, sh elsewhere). On Unix the probe is
+// followed by `sleep 10` holding the pipe open: OpenSSL 3.x s_client quits
+// on stdin EOF like s_server does, and a bare `echo ... |` closes the pipe
+// before our server's echo arrives (proven vs 3.0 with a 3s-delayed echo:
+// EOF form loses it, hold-open form prints it). Windows stays as-is
+// (green in CI with an inherited stdin).
 fn run_s_client(bin string, port int) os.Result {
 	$if windows {
 		return os.exec(['powershell', '-NoProfile', '-Command', "Write-Output 'ping-tls12-ssl' | & '" +
 			bin + "' s_client -tls1_2 -connect 127.0.0.1:${port} -cipher ECDHE-RSA-AES128-GCM-SHA256"])
 	} $else {
-		return os.exec(['sh', '-c',
-			"echo ping-tls12-ssl | '" + bin + "' s_client -tls1_2 -connect 127.0.0.1:${port} -cipher ECDHE-RSA-AES128-GCM-SHA256"])
+		return os.exec(['sh', '-c', "(echo ping-tls12-ssl; sleep 10) | '" + bin +
+			"' s_client -tls1_2 -connect 127.0.0.1:${port} -cipher ECDHE-RSA-AES128-GCM-SHA256"])
 	}
 }
 

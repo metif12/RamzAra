@@ -87,6 +87,13 @@ and used only to exercise EC public-key extraction.
   OpenSSL 3.0); Windows spawns direct (runners stay green with inherited
   stdin; MSYS2/native shell pipes misbehave there). The s_server
   exit/output capture stays as permanent diagnostics.
+- Mirror image on the reverse direction (`test_openssl_s_client_server`):
+  a bare `echo ... | s_client` closes s_client's stdin before our
+  server's echo arrives, and 3.x s_client quits on that EOF (handshake
+  prints, echo missing — the run6 ubuntu/macos failure). Proven vs 3.0
+  with a 3s-delayed echo server (EOF form: 0 echoes; hold-open form: 1).
+  Unix `run_s_client` now uses `(echo ping-tls12-ssl; sleep 10) | ...`;
+  Windows unchanged (green in CI).
 - Compile every touched `_test.v` before pushing: an illegal `mut`
   on a `chan` parameter broke the whole matrix for a full cycle
   (channels are handles; pass by value even for `try_pop`).
