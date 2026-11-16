@@ -104,7 +104,12 @@ jobs:
         shell: bash
         run: |
           cd "$RUNNER_TEMP"
-          openssl s_server -tls1_3 -accept 18444 -cert c.pem -key k.pem -naccept 1 &
+          # Hold s_server's stdin open: OpenSSL 3.x quits on stdin EOF
+          # and a bare `... &` shares the step stdin, which runners don't
+          # guarantee open (ACCEPT then instant DONE, 0 accepts — the same
+          # class as the tls12/interop_test.v harness bug). Piping sleep
+          # in keeps it open through the handshake.
+          sleep 30 | openssl s_server -tls1_3 -accept 18444 -cert c.pem -key k.pem -naccept 1 &
           SRV=$!
           sleep 2
           # -servername: our client verifies the hostname against the
