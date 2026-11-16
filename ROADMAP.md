@@ -103,8 +103,13 @@ and used only to exercise EC public-key extraction.
 - CI workflow carries the same stdin-EOF bug class: the interop step's
   bare `openssl s_server ... &` shares the step stdin, which runners
   don't guarantee open (ACCEPT then instant DONE, 0 accepts — flaked
-  ubuntu+windows in run8 while the V suite was fully green). Now
-  `sleep 30 | openssl s_server ... &` like the in-test wrapper.
+  ubuntu+windows in run8 while the V suite was fully green). Tried
+  `sleep 30 |` first: holds Unix stdin open (proven vs 3.0) but makes
+  Windows Git-bash openssl deaf for 30s, 0 accepts (MSYS2/native pipe
+  boundary — reproduced locally with Git's own 3.5.6). Closed stdin
+  (`<&-`) serves fine on both (proven vs 3.0 and 3.5.6 with real
+  handshakes), so the step closes it outright. The in-test wrappers
+  keep their Unix-pipe / Windows-direct split (green as-is).
 - Compile every touched `_test.v` before pushing: an illegal `mut`
   on a `chan` parameter broke the whole matrix for a full cycle
   (channels are handles; pass by value even for `try_pop`).

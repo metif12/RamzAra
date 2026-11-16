@@ -104,12 +104,13 @@ jobs:
         shell: bash
         run: |
           cd "$RUNNER_TEMP"
-          # Hold s_server's stdin open: OpenSSL 3.x quits on stdin EOF
-          # and a bare `... &` shares the step stdin, which runners don't
-          # guarantee open (ACCEPT then instant DONE, 0 accepts — the same
-          # class as the tls12/interop_test.v harness bug). Piping sleep
-          # in keeps it open through the handshake.
-          sleep 30 | openssl s_server -tls1_3 -accept 18444 -cert c.pem -key k.pem -naccept 1 &
+          # Close s_server's stdin: OpenSSL 3.x quits on stdin EOF and the
+          # step stdin is not guaranteed open (ACCEPT then instant DONE, 0
+          # accepts). A pipe (`sleep 30 |`) holds Unix stdin open but makes
+          # Windows Git-bash openssl deaf (0 accepts for 30s: MSYS2/native
+          # pipe boundary). A closed fd serves fine on both (proven vs 3.0
+          # and 3.5.6 with real handshakes), so close it outright.
+          openssl s_server -tls1_3 -accept 18444 -cert c.pem -key k.pem -naccept 1 <&- &
           SRV=$!
           sleep 2
           # -servername: our client verifies the hostname against the
