@@ -250,19 +250,26 @@ pub fn (key PublicKey) verify_pkcs1_v15(digest []u8, sig []u8, h Hash) ! {
 }
 
 // pss_mgf1 implements MGF1 (RFC 8017, appendix B.2.1).
+// One input block is reused: the seed bytes are written once and only
+// the 4-byte big-endian counter changes per iteration (identical input
+// bytes to the naive per-block build, without its alloc + seed copy).
 fn pss_mgf1(hash_fn fn ([]u8) []u8, hlen int, seed []u8, out_len int) ![]u8 {
 	if out_len > (hlen << 32) {
 		return error('rsa: PSS mask too long')
 	}
 	mut out := []u8{cap: out_len}
+	mut block := []u8{cap: seed.len + 4}
+	block << seed
+	block << u8(0)
+	block << u8(0)
+	block << u8(0)
+	block << u8(0)
 	mut counter := u32(0)
 	for out.len < out_len {
-		mut block := []u8{cap: seed.len + 4}
-		block << seed
-		block << u8(counter >> 24)
-		block << u8(counter >> 16)
-		block << u8(counter >> 8)
-		block << u8(counter)
+		block[seed.len] = u8(counter >> 24)
+		block[seed.len + 1] = u8(counter >> 16)
+		block[seed.len + 2] = u8(counter >> 8)
+		block[seed.len + 3] = u8(counter)
 		out << hash_fn(block)
 		counter++
 	}

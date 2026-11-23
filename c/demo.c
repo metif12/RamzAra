@@ -5,9 +5,19 @@
 //   cc -o demo c/demo.c -L. -lramzara -I c
 //   LD_LIBRARY_PATH=. ./demo example.com 443
 //
+// With a local test server (see .github/workflows/ci.yml `c-api` job):
+//   openssl req -x509 -newkey rsa:2048 -keyout k.pem -out c.pem -days 1 \
+//     -nodes -subj /CN=127.0.0.1 -addext subjectAltName=IP:127.0.0.1
+//   openssl s_server -tls1_3 -www -accept 18445 -cert c.pem -key k.pem -naccept 1 &
+//   LD_LIBRARY_PATH=. ./demo 127.0.0.1 18445 c.pem 0
+//
 // Build (Windows, MSVC prompt):
 //   v -shared -o ramzara.dll capi/ramzara_c.v
 //   cl c/demo.c /Ic ramzara.lib
+//
+// Usage: demo [host [port [cafile [insecure]]]]
+//   cafile   PEM bundle path, or empty for platform roots.
+//   insecure "1" skips certificate verification (tests only).
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +27,12 @@
 int main(int argc, char **argv) {
 	const char *host = argc > 1 ? argv[1] : "example.com";
 	int port = argc > 2 ? atoi(argv[2]) : 443;
+	const char *cafile = argc > 3 ? argv[3] : NULL;
+	if (cafile != NULL && cafile[0] == '\0')
+		cafile = NULL;
+	int insecure = argc > 4 ? atoi(argv[4]) : 0;
 
-	RamzAraConn *c = ramzara_dial(host, port, NULL, NULL, 0);
+	RamzAraConn *c = ramzara_dial(host, port, NULL, cafile, insecure);
 	if (!c) {
 		fprintf(stderr, "dial failed: %s\n", ramzara_last_error());
 		return 1;

@@ -136,6 +136,11 @@ jobs:
     name: C API shared lib (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      # Git bash on Windows rewrites `/CN=...` to a filesystem path
+      # (MSYS path conversion); the openssl req -subj flag below needs
+      # it verbatim (same reason as the interop job).
+      MSYS_NO_PATHCONV: 1
     strategy:
       fail-fast: false
       matrix:
@@ -177,3 +182,39 @@ jobs:
           else
             nm -D --defined-only "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'ramzara_(dial|read|write|close|verify|cert_text|last_error|version)'
           fi
+      - name: Build C demo (link check)
+        shell: bash
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            if command -v gcc >/dev/null; then
+              gcc -o demo.exe c/demo.c -Ic -L. -lramzara
+            else
+              "$HOME/vlang-build/thirdparty/tcc/tcc.exe" -o demo.exe c/demo.c -Ic ramzara.dll
+            fi
+          else
+            cc -o demo c/demo.c -Ic -L. -lramzara
+          fi
+      - name: Run C demo against openssl s_server
+        # Executes the real C ABI end to end (dial, handshake, write,
+        # read, close, cipher_name, resumed, last_error) on every push.
+        # macOS is excluded: its LibreSSL lacks -addext and matching
+        # s_server behavior (the interop job avoids macOS for the same
+        # reason); macOS still gets the build + export verification.
+        if: runner.os != 'macOS'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/cdemo" && cd "$RUNNER_TEMP/cdemo"
+          cp "$GITHUB_WORKSPACE"/demo* .
+          cp "$GITHUB_WORKSPACE"/libramzara.so "$GITHUB_WORKSPACE"/ramzara.dll . 2>/dev/null || true
+          openssl req -x509 -newkey rsa:2048 -keyout k.pem -out c.pem -days 1 -nodes -subj /CN=127.0.0.1 -addext subjectAltName=IP:127.0.0.1
+          openssl s_server -tls1_3 -www -accept 18445 -cert c.pem -key k.pem -naccept 1 <&- &
+          SRV=$!
+          sleep 2
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./demo.exe 127.0.0.1 18445 c.pem 0
+          else
+            LD_LIBRARY_PATH=. timeout 60 ./demo 127.0.0.1 18445 c.pem 0
+          fi
+          kill $SRV 2>/dev/null || true
+          wait $SRV 2>/dev/null || true
