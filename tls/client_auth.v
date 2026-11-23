@@ -8,7 +8,6 @@ import crypto.sha512
 import metif12.ramzara.slh_dsa
 import crypto.subtle
 import metif12.ramzara.x509
-import time
 import x.crypto.mldsa
 
 // Mutual TLS (RFC 8446 §4.3.2, §4.4.2).

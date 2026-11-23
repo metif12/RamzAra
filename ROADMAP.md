@@ -58,6 +58,17 @@ and used only to exercise EC public-key extraction.
 - Re-measure `-prod` for release artifacts on the pinned toolchain
   (blocked: `-prod` + `-shared` + `-Wimpure-v` trips the backend gate
   on older toolchains; CLI-only `-prod` is verified at −15% size).
+- True `-gc none` support as a staged project (handles alone are ~1%
+  of per-connection allocations; flipping the flag without converting
+  the tree leaks everything and risks UAF at the ABI boundary):
+  1. leak gate `tls/leak_test.v` — N verified loopbacks, RSS must not
+      grow (Linux-only; skips elsewhere). Proven both directions on the
+      pinned toolchain: the leak gate passes on GC and fails without it
+      (~2.5 MiB leaked per RSA session over 40 sessions: 101008 KiB total).
+      The port is done when the gate passes with GC off,
+  2. convert module by module with the gate green each step, starting
+     at `capi/` (explicit free on close) and working inward,
+  3. only then flip the release/CI flags.
 - `s_client`: interactive TTY mode (today it relays piped stdin).
 - `req`: CSRs (`-new`, no `-x509`) and CA signing (`-CA` with a real CA).
 - OCSP responder mode (`ocsp -index`, nonce handling).
