@@ -25,7 +25,7 @@ Fixture provenance: `tls/testdata/quiche_p256_handshake_server_cert.pem`
 is copied from `vlib/net/quic/testdata/tls13_vectors/` (upstream V repo)
 and used only to exercise EC public-key extraction.
 
-## v1 (shipped, currently v0.1.2)
+## v1 (shipped, currently v0.1.2; trunk holds rename + docs + opt pass 1)
 
 - [x] Library: `tls` (1.3), `tls12` (1.2), `dtls12`, `x509`, `pkcs12`,
   `rsa`, `slh_dsa`, `mlkem`, `kat`, `toolkit`
@@ -33,8 +33,13 @@ and used only to exercise EC public-key extraction.
   rand speed` (full scope)
 - [x] C ABI: `c/ramzara.h` + `capi/` shim + `c/demo.c`, release artifacts
   (prebuilt libs + header + demo)
-- [x] Docs: usage-v, usage-c, openssl-map, api, goals
+- [x] Docs: usage-v, usage-c, openssl-map, api, module READMEs, goals
 - [x] CI: fmt/vet/test matrix + OpenSSL interop + C-lib release
+  (concurrency cancel, timeouts, no fail-fast on libs, cache
+  restore-keys, `.git`-free module copies, guarded strip, artifact
+  gitignore — see appendix B)
+- [x] Rename `vtls` → `RamzAra` shipped end to end: code, docs, file
+  names, GitHub repo + metadata, README notice (old URL redirects)
 - [x] VPM install verified (`v install --git https://github.com/metif12/RamzAra`
   resolves `metif12.ramzara.*`); tags `v0.1.0`–`v0.1.2` pushed (each tag
   triggers the C-lib release). Registry search listing remains a manual
@@ -43,10 +48,22 @@ and used only to exercise EC public-key extraction.
 ## v1.1 (next)
 
 - C API: TLS 1.2 + DTLS 1.2 bindings, mTLS parameters, keylog hook.
+- Narrow the Windows DLL export table to the `ramzara.def` allowlist
+  (today `--export-all-symbols` ships the whole V runtime).
+- Cache hot paths without behavior change: per-epoch AEAD objects
+  (record data path), parsed system roots/CRLs (handshake path),
+  FFDHE/P-256 curve params (big-int setup). Each lands only with
+  before/after test proof.
+- CI: split fast/slow test jobs (deterministic units vs loopback/PQC),
+  so the `VJOBS=2` handshake throttle stops serializing everything.
+- Re-measure `-prod` for release artifacts on the pinned toolchain
+  (blocked: `-prod` + `-shared` + `-Wimpure-v` trips the backend gate
+  on older toolchains; CLI-only `-prod` is verified at −15% size).
 - `s_client`: interactive TTY mode (today it relays piped stdin).
 - `req`: CSRs (`-new`, no `-x509`) and CA signing (`-CA` with a real CA).
 - OCSP responder mode (`ocsp -index`, nonce handling).
 - Fuzz corpus in CI (short) + nightly long fuzz.
+- VPM registry search listing (manual step).
 
 ## Non-goals (carried over)
 
@@ -57,7 +74,7 @@ DTLS 1.2 stays anonymous-by-default unless the peer key is pinned.
 CBC length-timing residual and socket write-timeout limits are
 documented in usage-c.md.
 
-## Appendix: CI hardening log
+## Appendix A: CI hardening log
 
 Recorded during the first green-board runs, before the rename. Names
 below are preserved verbatim as written at the time (`vtls` = today's
@@ -165,3 +182,44 @@ forward.
   listing, the build step re-clones when the checkout is absent,
   and the cache key carries a `-v1` suffix to isolate layout
   changes.
+
+## Appendix B: optimization log (pass 1, post-rename)
+
+Rule for this log: no behavior change without test proof; no delivery
+of what cannot be verified on the pinned toolchain.
+
+Landed and proven:
+
+- `tls12/ccm.v`: one AES key expansion per record (cipher threaded
+  through CBC-MAC/CTR/tag-mask) instead of one per 16-byte block
+  (~2000 expansions/record before). Proven by `tls12` suite
+  (35 s, incl. CCM KAT + loopback).
+- `tls/client.v`: deleted dead `sg_tmp` ClientHello-groups recompute.
+- `mlkem/mlkem.v`: `sample_cbd_eta` collapses four repeated
+  eta dispatches. Proven by `mlkem` KAT suite.
+- `pkcs12`: `hmac.equal` called directly; `verify_hmac` wrapper and
+  the now-unused import removed. Proven by `pkcs12` suite.
+- CI: `concurrency.cancel-in-progress`, per-job `timeout-minutes`,
+  `fail-fast: false` on lib builds, cache `restore-keys`, `.git`
+  excluded from `.vmodules` copies, guarded `strip` + sizes in the
+  release job, artifact names in `.gitignore`. Zero job-structure
+  change, so nothing to re-prove beyond the next green board.
+- Measured baselines: CLI 4,557,312 B default vs 3,847,633 B with
+  `-prod` (−15.6%, behavior identical). CLI `-prod` guidance is in
+  CONTRIBUTING.md.
+
+Deliberately deferred (with reason):
+
+- `-prod` for the C shared libs: `-prod` + `-shared` + `-Wimpure-v`
+  trips the stdlib backend gate on older toolchains, and the pinned
+  toolchain cannot be verified from here. Re-measure there first.
+- Windows export-table narrowing to `ramzara.def`: changes the link,
+  only provable by the release job itself. Queued for a tag run.
+- Per-epoch AEAD caching, roots/CRL caching, P-256/FFDHE param
+  caching, transcript/flight copy reduction: all real wins from the
+  audit, each needs its module suite green before/after. Queued as
+  one-item-per-commit work.
+- Test sharding (fast units vs slow loopbacks): YAML restructure,
+  only provable by pushing. Queued.
+- `pub`-surface shrinking (`mlkem` internals, `dtls12` timers):
+  API break for downstream importers; decide with a version bump.
