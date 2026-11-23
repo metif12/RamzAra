@@ -68,8 +68,9 @@ Key types: `rsa[:2048|:3072]`, `ec:p-256|p-384|p-521`, `ed25519`,
 ## Artifacts
 
 Each tag release ships `ramzara.h`, one prebuilt shared library per OS,
-and `demo.c`. A single-file C amalgamation is future work (the V
-`-shared` build does not emit a self-contained translation unit).
+and `demo.c`. A single-file C form of the whole C API lives at
+`c/generated/ramzara.c`, refreshed by CI on every `master` push —
+usable wherever only a C compiler is available.
 ABI rule: only C-compatible types cross the boundary; all out-params
 are caller-owned buffers with explicit lengths (except
 `ramzara_last_error()` / `ramzara_version()`, valid until the next call on
@@ -83,4 +84,4 @@ the same thread).
 - No client-certificate (mTLS) parameters in the C API yet; the V API
   supports it (`verify_client`, `client_cert`/`client_key`).
 - Accepted residual: CBC length-timing in the 1.2/CBC path; socket-level
-  write timeouts need a `vlib/net` change upstream.
+  write timeouts need a V standard library socket change upstream.

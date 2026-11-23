@@ -8,3 +8,6 @@
 *.vv linguist-language=V
 *.vsh linguist-language=V
 v.mod linguist-language=V
+
+# CI-generated single-file C form of the C API (see c/generated/README.md)
+c/generated/*.c linguist-generated=true

@@ -9,12 +9,11 @@ every claim is gated by tests, including live OpenSSL interop.
 
 ## Where it comes from
 
-Extracted from `vlang/v` PR #32052 (`tls-final` @ `15ba1ef81f`) with
+Extracted from the V project with
 import paths rewritten (`crypto.x509` → `metif12.ramzara.x509`, etc.) and
-`x.crypto.mlkem` vendored as `mlkem/`. Sync procedure is in
-CONTRIBUTING.md. Deliberately left behind: the legacy `net/dtls`
-module (superseded by `dtls12`), QUIC test vectors (one fixture
-vendored into `tls/testdata` with provenance noted below).
+`x.crypto.mlkem` vendored as `mlkem/`. Deliberately left behind: the legacy
+`net/dtls` module (superseded by `dtls12`) and QUIC test vectors (one
+fixture vendored into `tls/testdata` with provenance noted below).
 
 In November 2026 the project was renamed `vtls` → `RamzAra`
 (module/binary `ramzara`, C API `ramzara_*`, GitHub
@@ -22,7 +21,7 @@ In November 2026 the project was renamed `vtls` → `RamzAra`
 renamed without behavior change (see CHANGELOG.md).
 
 Fixture provenance: `tls/testdata/quiche_p256_handshake_server_cert.pem`
-is copied from `vlib/net/quic/testdata/tls13_vectors/` (upstream V repo)
+is copied from the upstream V repo's QUIC test vectors
 and used only to exercise EC public-key extraction.
 
 ## v1 (shipped, currently v0.1.2; trunk holds rename + docs + opt pass 1)

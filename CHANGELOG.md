@@ -2,8 +2,8 @@
 
 ## v0.1.0 (unreleased)
 
-Initial standalone release, extracted from `vlang/v` PR #32052
-(`tls-final` @ `15ba1ef81f`).
+Initial standalone release, extracted from the V project and
+maintained here as a versioned package.
 
 - Library: `tls` (TLS 1.3), `tls12` (TLS 1.2), `dtls12`, `x509`,
   `pkcs12`, `rsa`, `slh_dsa`, vendored `mlkem`, `kat`.
@@ -30,6 +30,10 @@ Initial standalone release, extracted from `vlang/v` PR #32052
   (Follow-up: the standalone `rsa/cert_gen.v` copy kept the old
   strip-then-mask and now calls `x509.fresh_serial` instead.)
 - CI: fmt gate, 3-OS test matrix, OpenSSL interop, C-lib release.
+- C API now gates every push: `c-api` CI job builds the shared lib on
+  all three OSes and verifies the `ramzara_*` exports; `c/generated/`
+  holds the single-file C form of the C API, refreshed by CI on every
+  `master` push touching V/C sources.
 - Project renamed `vtls` → `RamzAra`: module/binary `ramzara`
   (`metif12.ramzara.*`, `v install metif12.ramzara`), CLI `cmd/ramzara/`,
   C API `ramzara_*` in `c/ramzara.h` / `c/ramzara.def` (`RamzAraConn`,

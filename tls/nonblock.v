@@ -2,7 +2,7 @@
 //
 // This file only *uses* the existing Conn/Config/dial/listen API; it does
 // not modify conn.v, client.v, server.v or tls.v. Timeouts are enforced with
-// the socket primitives vlib/net already exposes on net.TcpConn
+// the socket primitives the V standard library already exposes on net.TcpConn
 // (set_read_timeout / set_write_timeout / set_read_deadline /
 // set_write_deadline), so this file stays pure V (-Wimpure-v clean).
 module tls

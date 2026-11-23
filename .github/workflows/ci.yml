@@ -131,3 +131,49 @@ jobs:
           # unless -verify_hostname is given.)
           printf 'ping' | "$GITHUB_WORKSPACE/ramzara-bin" s_client -connect 127.0.0.1:18444 -servername localhost -CAfile c.pem -brief
           wait $SRV
+
+  c-api:
+    name: C API shared lib (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            out: libramzara.so
+          - os: windows-latest
+            out: ramzara.dll
+          - os: macos-latest
+            out: libramzara.dylib
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned V
+        uses: ./.github/actions/build-v-pinned
+      - name: Install package into .vmodules
+        shell: bash
+        run: |
+          mkdir -p ~/.vmodules/metif12
+          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/ramzara
+          rm -rf ~/.vmodules/metif12/ramzara/.git
+      - name: Build shared library
+        shell: bash
+        run: |
+          cd ~/.vmodules/metif12/ramzara
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            "$VBIN" -Wimpure-v -enable-globals -shared -cflags "-Wl,--export-all-symbols" -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/ramzara_c.v
+            dlltool -d c/ramzara.def --dllname "${{ matrix.out }}" -l "$GITHUB_WORKSPACE/libramzara.dll.a"
+          else
+            "$VBIN" -Wimpure-v -enable-globals -shared -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/ramzara_c.v
+          fi
+          ls -la "$GITHUB_WORKSPACE/${{ matrix.out }}"
+      - name: Verify C exports
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            objdump -p "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'ramzara_(dial|read|write|close|verify|cert_text|last_error|version)'
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            nm -g "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'ramzara_(dial|read|write|close|verify|cert_text|last_error|version)'
+          else
+            nm -D --defined-only "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'ramzara_(dial|read|write|close|verify|cert_text|last_error|version)'
+          fi

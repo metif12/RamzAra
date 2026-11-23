@@ -1,5 +1,9 @@
 # Constant-time audit report — TLS / crypto assurance
 
+> Note: this is a point-in-time audit of the upstream V tree layout.
+> `vlib/...` paths below refer to that tree as audited, not to this
+> repo's module layout; they are preserved verbatim.
+
 Tasking: raise assurance without editing existing sources (new files only),
 with deterministic fuzz-shape tests, RFC KATs, and a written constant-time
 audit (report only, no source fixes). Branch `feat/tls-suites`, head

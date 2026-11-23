@@ -46,18 +46,11 @@ Rules: pure V in module code (`-Wimpure-v` clean), verify every fix by
 execution, test-adequacy fixes are test-only unless a lens proves a
 source bug, and never widen `capi/` without updating `c/ramzara.h`.
 
-## Syncing from vlang/v#32052
+## Origin
 
-1. In a vlang/v checkout on the `tls-final` branch (or newer):
-   `git archive HEAD <paths>` for `vlib/net/tls{,12}`, `vlib/net/dtls12`,
-   `vlib/crypto/{x509,pkcs12,slh_dsa,rsa,kat_test.v}`,
-   `vlib/x/crypto/mlkem`.
-2. Move them onto `tls/ tls12/ dtls12/ x509/ pkcs12/ slh_dsa/ rsa/
-   kat/ mlkem/` and re-apply the import rewrite
-   (`crypto.x509` → `metif12.ramzara.x509`, `net.tls` → `metif12.ramzara.tls`,
-   `net.tls12`, `net.dtls12`, `crypto.rsa/slh_dsa/pkcs12`,
-   `x.crypto.mlkem` → `metif12.ramzara.mlkem` on `^import` lines;
-   `@VEXEROOT + 'vlib/...` → `@VMODROOT + '<pkg>/...`).
-3. Keep `toolkit/`, `cmd/`, `capi/`, `c/`, `docs/` as the package's own
-   layer; re-run the full gate plus the CLI and C builds.
-4. Record the new base in CHANGELOG.md and bump `V_PIN` in CI.
+This package was extracted from the V project's TLS/PKI stack and is
+now maintained independently: `toolkit/`, `cmd/`, `capi/`, `c/`,
+`docs/` are the package's own layer on top of the ported modules.
+Upstream syncs are not planned; fixes and features land here directly
+and are recorded in CHANGELOG.md (bump `V_PIN` in CI when the required
+toolchain moves).

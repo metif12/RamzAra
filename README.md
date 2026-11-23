@@ -19,8 +19,7 @@ The name evokes the art of giving structure and expression to symbols, patterns,
 
 Pure-V TLS 1.3, TLS 1.2, DTLS 1.2, x509 PKI, PKCS#12, RSA, SLH-DSA —
 plus a `ramzara` CLI and a stable C library. Extracted from
-[`vlang/v` PR #32052](https://github.com/vlang/v/pull/32052)
-(`tls-final` @ `15ba1ef81f`) and maintained here as a versioned
+the V project and maintained here as a versioned
 [VPM](https://vlang.io) package.
 
 - `-Wimpure-v` clean: no C interop anywhere in module code.
@@ -91,6 +90,7 @@ API: [`docs/api.md`](docs/api.md). Goals: [`ROADMAP.md`](ROADMAP.md).
 | `toolkit/` | keygen + self-signed certs for the CLI and C API |
 | `cmd/ramzara/` | `ramzara` CLI (OpenSSL replacement) |
 | `capi/` + `c/` | C ABI shim + `ramzara.h` + demo client |
+| `c/generated/` | single-file C form of the C API, refreshed by CI on every push |
 | `docs/` | usage guides, OpenSSL map |
 
 ## Test

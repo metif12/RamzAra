@@ -69,7 +69,7 @@ fn test_nonblock_happy_path_unaffected() ! {
 }
 
 // A silent (blackhole) peer must trip the handshake deadline, reported
-// with the vlib/net timeout code.
+// with the standard library timeout code.
 fn test_nonblock_handshake_timeout_blackhole() ! {
 	mut bl := net.listen_tcp(.ip, '127.0.0.1:0')!
 	bport := bl.addr()!.port()!
@@ -217,8 +217,8 @@ fn test_nonblock_async_timeout_and_cancel() ! {
 // blocking send() and set_write_timeout never applies SO_SNDTIMEO, so a
 // full window blocks indefinitely instead of timing out (measured: a
 // 16s-blocked write returned RST on peer close, never a timeout). Firing
-// a write timeout needs a source fix in vlib/net (apply the timeout to
-// the socket or poll before blocking sends).
+// a write timeout needs a source fix in the V standard library's net
+// module (apply the timeout to the socket or poll before blocking sends).
 
 // Async cancellation against a FRESH listener, signalled by send: the
 // result is cancelled (not a socket error), proving the cancellation

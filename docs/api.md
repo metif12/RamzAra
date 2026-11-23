@@ -172,6 +172,8 @@ library API; documents what every primitive is pinned against.
 Stable, C89-compatible header over `capi/ramzara_c.v`
 (`-shared -enable-globals`; Windows link adds
 `-Wl,--export-all-symbols`, import lib via `c/ramzara.def`).
+A single-file C form is checked in at `c/generated/ramzara.c`,
+refreshed by CI on every `master` push.
 
 | symbol | notes |
 |---|---|
