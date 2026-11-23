@@ -5,8 +5,8 @@
 module toolkit
 
 import crypto.pem
-import metif12.vtls.tls
-import metif12.vtls.x509
+import metif12.ramzara.tls
+import metif12.ramzara.x509
 
 fn check_pair(key_type string, want_key_block string) ! {
 	g := generate_self_signed(key_type, 'localhost', [], 30, false)!

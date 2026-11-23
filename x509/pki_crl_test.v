@@ -3,7 +3,7 @@ module x509
 import crypto.ecdsa
 import crypto.ed25519
 import crypto.pem
-import metif12.vtls.slh_dsa
+import metif12.ramzara.slh_dsa
 import math.big
 import os
 import time
@@ -206,8 +206,8 @@ fn test_pki_crl_wrong_issuer() {
 }
 
 // parse_test_rsa_privkey reads n, e, d from a PKCS#8 RSA PEM block
-// (test-only; production RSA keys never enter crypto.x509 to avoid an
-// import cycle with crypto.rsa).
+// (test-only; production RSA keys never enter x509 to avoid an
+// import cycle with rsa).
 fn parse_test_rsa_privkey(pem_text string) (big.Integer, u64, big.Integer) {
 	block, _ := pem.decode(pem_text) or { panic('no PEM block') }
 	assert block.block_type == 'PRIVATE KEY'

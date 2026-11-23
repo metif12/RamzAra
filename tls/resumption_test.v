@@ -403,7 +403,7 @@ fn hex_to_bytes(s string) []u8 {
 // test_binder_openssl_vector pins PSK binder verification against a real
 // OpenSSL 3 s_client resumption offer captured on the wire. The resumption
 // master, ticket nonce and offered binder below come from a live handshake
-// against a net.tls listener; the transcript prefix a binder covers is the
+// against a tls listener; the transcript prefix a binder covers is the
 // raw ClientHello with the binders list chopped off (RFC 8446 §4.2.11.2),
 // not a zeroed copy — the zeroed copy fails against OpenSSL.
 fn test_binder_openssl_vector() {

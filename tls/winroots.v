@@ -1,6 +1,6 @@
 module tls
 
-import metif12.vtls.x509
+import metif12.ramzara.x509
 
 // parse_certutil_output extracts every CERTIFICATE block from Windows
 // certutil or PowerShell PEM output, skipping surrounding human-readable

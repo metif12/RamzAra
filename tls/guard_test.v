@@ -3,7 +3,7 @@ module tls
 import crypto.aes
 import crypto.ecdsa
 import crypto.sha256
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import time
 import x.crypto.curve25519
 

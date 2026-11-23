@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // DTLS 1.2 record layer (RFC 6347 minimal, epoch 0/1).
-// File-disjoint from net.tls and net.tls12: own DTLS header, own replay/RTO
+// File-disjoint from tls and tls12: own DTLS header, own replay/RTO
 // logic and own GCM/CBC protection with DTLS additional data. Pure-V.
 module dtls12
 
@@ -34,7 +34,7 @@ pub const dtls12_epoch_handshake = u16(0)
 // dtls12_epoch_application carries encrypted application data.
 pub const dtls12_epoch_application = u16(1)
 
-// ContentType mirrors the TLS content types without importing net.tls.
+// ContentType mirrors the TLS content types without importing tls.
 pub enum ContentType {
 	change_cipher_spec = 20
 	alert              = 21

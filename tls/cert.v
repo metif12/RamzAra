@@ -1,7 +1,7 @@
 module tls
 
 import crypto.ecdsa
-import metif12.vtls.x509
+import metif12.ramzara.x509
 
 // Minimal DER TLV reader. Returns (tag, value slice, bytes consumed).
 fn der_tlv(data []u8) !(u8, []u8, int) {
@@ -188,7 +188,7 @@ pub fn parse_cert_pubkey(cert_msg_body []u8) !x509.PublicKey {
 
 // parse_cert_verify_sig extracts the scheme and signature from a TLS 1.3
 // CertificateVerify body.
-// parse_cert_verify_sig accepts the schemes net.tls implements
+// parse_cert_verify_sig accepts the schemes tls implements
 // (ecdsa 0x0403/0x0503/0x0603, eddsa 0x0807, mldsa 0x0904/0x0905/0x0906,
 // slh-dsa-sha2 0x0911/0x0912/0x0913/0x0914/0x0915/0x0916,
 // slh-dsa-shake 0x0917/0x0918/0x0919/0x091a/0x091b/0x091c, rsa_pss_rsae

@@ -1,9 +1,9 @@
 module rsa
 
 import crypto.sha256
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import math.big
-import metif12.vtls.tls
+import metif12.ramzara.tls
 import time
 
 // textbook_key builds the classic RSA example (p=61, q=53, e=17) as a
@@ -142,7 +142,7 @@ fn test_rsa_keygen_1024_and_roundtrips() {
 	if _ := pk.verify_pkcs1_v15(digest, tampered, .sha256) {
 		assert false, 'tampered signature must fail'
 	}
-	// Cross-compatibility with net.tls in both directions.
+	// Cross-compatibility with tls in both directions.
 	tls.rsa_pkcs1_verify_digest(digest, sig, key.n, key.e, tls.RsaHash.sha256) or {
 		panic('tls verify of rsa sig: ${err}')
 	}
@@ -172,7 +172,7 @@ fn test_rsa_keygen_1024_and_roundtrips() {
 	}
 	pk.verify_pss(msg, tls_pss_sig, .sha256) or { panic('verify of tls PSS: ${err}') }
 
-	// DER roundtrips and net.tls private-key parser compatibility.
+	// DER roundtrips and tls private-key parser compatibility.
 	pkcs1 := key.to_pkcs1_der()
 	back := private_key_from_pkcs1_der(pkcs1) or { panic('pkcs1 parse: ${err}') }
 	assert back.n == key.n && back.e == key.e && back.d == key.d
@@ -248,7 +248,7 @@ fn test_rsa_self_signed_cert() {
 			panic('expected RSA public key')
 		}
 	}
-	// The self-signature verifies with net.tls against our public key.
+	// The self-signature verifies with tls against our public key.
 	tls.verify_cert_signature_rsa(der, key.public_key().to_pkcs1_der()) or {
 		panic('cert sig verify: ${err}')
 	}

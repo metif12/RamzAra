@@ -5,7 +5,7 @@
 // Minimal DER/X.509 parsing plus RSA PKCS#1 v1.5 sign/verify for TLS 1.2.
 // Only what the handshake needs: leaf public-key extraction, signature
 // verification (self-signed or pinned CA), and PKCS#8 server-key loading.
-// Standalone; shares no code with net.tls.
+// Standalone; shares no code with tls.
 module tls12
 
 import crypto.sha256

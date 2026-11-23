@@ -7,7 +7,7 @@
 // values are master secrets keyed by session-ID hex. Handshakes sharing a
 // process must be serialized by the embedder — the map has no lock because
 // sync would drag C linkage into every pure-V consumer; the single-process
-// precedent is the TLS 1.3 ticket replay cache (net.tls used_ticket_nonces),
+// precedent is the TLS 1.3 ticket replay cache (tls used_ticket_nonces),
 // where the in-repo accept path is likewise serial.
 module tls12
 

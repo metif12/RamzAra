@@ -1,11 +1,10 @@
-// net.tls is an opt-in, pure-V TLS 1.3 (RFC 8446) implementation for TCP.
-// Build with -d pure_tls to enable; otherwise net.ssl is used.
+// tls is a pure-V TLS 1.3 (RFC 8446) implementation for TCP.
 // Pure-V, TLS 1.3 only, ECDSA P-256/P-384/P-521, ML-DSA-44/65/87,
 // SLH-DSA-SHAKE-128s/128f/192s/192f/256s/256f and RSA
 // leaves, RSA/ECDSA/ML-DSA/SLH-DSA direct-root chain verification, trust roots that
 // resolve on every OS (explicit store, SSL_CERT_FILE/DIR, Unix paths,
 // embedded Mozilla bundle). X25519MLKEM768 hybrid key exchange (the
-// x.crypto.mlkem library also implements raw 512/1024 variants, which net.tls
+// vendored mlkem module also implements raw 512/1024 variants, which tls
 // does not negotiate). CertificateVerify schemes:
 // ecdsa 0x0403, 0x0503, 0x0603, mldsa 0x0904/0x0905/0x0906,
 // slh-dsa-shake 0x0917/0x0918/0x0919/0x091a/0x091b/0x091c, rsa_pss_rsae
@@ -182,11 +181,8 @@ pub mut:
 }
 
 // Config holds the settings for a TLS 1.3 connection (client or server).
-// The field names intentionally resemble net.ssl's options, but the types
-// differ: verify is a bool (not a CA path string), server_name is a Config
-// field (net.ssl passes the hostname to connect() instead), and the
-// verify_chain/ca_store/pq_mode/version fields have no net.ssl counterpart.
-// File paths or PEM bytes are accepted for cert/key; intermediates,
+// `verify` is a bool (not a CA path string); `server_name` is a Config
+// field. File paths or PEM bytes are accepted for cert/key; intermediates,
 // RSA-PSS CA signatures, SHA-1/MD5 and non-0x0303 versions
 // are not supported in v1.
 @[params]
@@ -277,8 +273,6 @@ pub mut:
 
 // Conn is defined in conn.v.
 
-// ListenerOptions is an empty placeholder for future listener settings.
-// ListenerOptions carries no options in v1 and is unrelated to
-// net.ssl.SSLListenerOptions (which selects the listen address family);
-// listen() always binds 127.0.0.1:0.
+// ListenerOptions is an empty placeholder for future listener settings;
+// listen() always binds 127.0.0.1:0 (use listen_on for any address).
 pub struct ListenerOptions {}

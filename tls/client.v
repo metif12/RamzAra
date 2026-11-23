@@ -2,10 +2,10 @@ module tls
 
 import crypto.ecdsa
 import crypto.rand
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import time
 import x.crypto.curve25519
-import metif12.vtls.mlkem
+import metif12.ramzara.mlkem
 import crypto
 
 // ClientHandshake holds state for a TLS 1.3 client handshake.
@@ -193,8 +193,6 @@ pub fn (mut h ClientHandshake) build_client_hello() ![]u8 {
 		if h.has_mlkem && h.pq_mode != .hybrid_require {
 			groups << named_group_x25519_mlkem768
 		}
-		sg_tmp := supported_groups_data_for(groups)
-		_ = sg_tmp
 		if h.has_mlkem {
 			mut hybrid_key := []u8{}
 			hybrid_key << pk_bytes

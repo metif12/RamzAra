@@ -5,9 +5,9 @@ import crypto.ed25519
 import crypto.pem
 import crypto.sha256
 import crypto.sha512
-import metif12.vtls.slh_dsa
+import metif12.ramzara.slh_dsa
 import crypto.subtle
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import time
 import x.crypto.mldsa
 

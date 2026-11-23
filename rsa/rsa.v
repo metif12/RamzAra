@@ -4,10 +4,10 @@
 // for primality testing (Miller-Rabin via `is_probably_prime_checked`,
 // reached through `rand.prime`) and modular arithmetic. The encodings
 // produced here are byte-compatible with the verification paths in
-// `net.tls`; the implementations are intentionally not shared so this
-// module never imports `net.tls`. That keeps the dependency direction
-// `net` -> `crypto` intact and avoids an import cycle once
-// `crypto.x509` grows RSA support.
+// `tls`; the implementations are intentionally not shared so this
+// module never imports `tls`. That keeps the dependency direction
+// (leaf crypto modules never import the TLS stack) intact and avoids
+// an import cycle once `x509` grows RSA support.
 module rsa
 
 import crypto.rand
@@ -48,7 +48,7 @@ fn (h Hash) hash_bytes(msg []u8) []u8 {
 
 // digest_info_prefix returns the PKCS#1 v1.5 DigestInfo prefix for the
 // hash, i.e. everything before the digest in an encoded message. The
-// table mirrors `net.tls` so signatures verify on both sides.
+// table mirrors `tls` so signatures verify on both sides.
 fn (h Hash) digest_info_prefix() []u8 {
 	return match h {
 		.sha256 {

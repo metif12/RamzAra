@@ -1,14 +1,23 @@
-# Binaries (root-anchored: a bare `vtls` pattern would ignore cmd/vtls/)
-/vtls.exe
-/vtls
-cmd/vtls/vtls
-cmd/vtls/vtls.exe
+# Binaries (root-anchored: a bare `ramzara` pattern would ignore cmd/ramzara/)
+/ramzara.exe
+/ramzara
+cmd/ramzara/ramzara
+cmd/ramzara/ramzara.exe
 capi/demo/demo
 capi/demo/demo.exe
 # Build output
 build/
 # C artifacts from `v -o`
 *.c.bak
+# Local release/interop outputs (never commit; see CI workflows)
+/ramzara-bin
+/demo
+/demo.exe
+/*.so
+/*.dll
+/*.dylib
+/*.dll.a
+/dist/
 # Editor / OS
 .vscode/
 .idea/

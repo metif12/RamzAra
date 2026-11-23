@@ -2,7 +2,7 @@
 module rsa
 
 import crypto.sha256
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import time
 
 // DER content bytes of 1.2.840.113549.1.1.11 (sha256WithRSAEncryption).
@@ -62,7 +62,7 @@ fn cert_name_der(common_name string) []u8 {
 // generate_self_signed creates a self-signed X.509 certificate for key
 // (SHA-256 with RSA encryption) and returns the parsed certificate plus
 // its DER encoding. The output parses with `x509.parse_der` and its
-// signature verifies with `net.tls.verify_cert_signature_rsa` against
+// signature verifies with `tls.verify_cert_signature_rsa` against
 // the matching public key.
 pub fn generate_self_signed(opts x509.CertGenOptions, key PrivateKey) !(x509.Certificate, []u8) {
 	pk := key.public_key()

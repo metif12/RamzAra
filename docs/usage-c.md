@@ -1,15 +1,17 @@
-# vtls usage guide (C)
+# RamzAra usage guide (C)
 
-The C ABI is `c/vtls.h` (stable, C89-compatible header). You link a
-prebuilt library from the GitHub releases (`libvtls.so` / `vtls.dll` /
-`libvtls.dylib`) or amalgamation (see below). No V toolchain needed to
+Full symbol reference: [`api.md`](api.md) (C ABI section).
+
+The C ABI is `c/ramzara.h` (stable, C89-compatible header). You link a
+prebuilt library from the GitHub releases (`libramzara.so` / `ramzara.dll` /
+`libramzara.dylib`) or amalgamation (see below). No V toolchain needed to
 *use* the library — only to build it.
 
 ## Linking
 
 ```sh
 # Linux
-cc -o demo c/demo.c -L. -lvtls -I c
+cc -o demo c/demo.c -L. -lramzara -I c
 LD_LIBRARY_PATH=. ./demo example.com 443
 ```
 
@@ -17,23 +19,23 @@ On Windows, create the import library first (the release ships one;
 this is how to regenerate it):
 
 ```sh
-dlltool -d c/vtls.def --dllname vtls.dll -l libvtls.dll.a
-gcc -o demo.exe c/demo.c -Ic -L. -lvtls
+dlltool -d c/ramzara.def --dllname ramzara.dll -l libramzara.dll.a
+gcc -o demo.exe c/demo.c -Ic -L. -lramzara
 ```
 
-MSVC users: `lib /def:vtls.def /out:vtls.lib /machine:x64`, then link
-`demo.obj` against `vtls.lib`.
+MSVC users: `lib /def:ramzara.def /out:ramzara.lib /machine:x64`, then link
+`demo.obj` against `ramzara.lib`.
 
 ## Client
 
 ```c
-#include "vtls.h"
+#include "ramzara.h"
 
-VtlsConn *c = vtls_dial("example.com", 443, NULL, NULL, 0);
-if (!c) { fprintf(stderr, "%s\n", vtls_last_error()); return 1; }
-vtls_write(c, (unsigned char *)req, len);
-int n = vtls_read(c, buf, sizeof buf);
-vtls_close(c);
+RamzAraConn *c = ramzara_dial("example.com", 443, NULL, NULL, 0);
+if (!c) { fprintf(stderr, "%s\n", ramzara_last_error()); return 1; }
+ramzara_write(c, (unsigned char *)req, len);
+int n = ramzara_read(c, buf, sizeof buf);
+ramzara_close(c);
 ```
 
 - `server_name`: NULL/"" means `host`; IPs never enter SNI.
@@ -44,9 +46,9 @@ vtls_close(c);
 ## Server
 
 ```c
-VtlsListener *l = vtls_listen(4433, "server.pem", "key.pem");
+RamzAraListener *l = ramzara_listen(4433, "server.pem", "key.pem");
 for (;;) {
-	VtlsConn *c = vtls_accept(l);
+	RamzAraConn *c = ramzara_accept(l);
 	/* read/write/close */
 }
 ```
@@ -54,9 +56,9 @@ for (;;) {
 ## Key generation and verification
 
 ```c
-vtls_generate_self_signed("ec:p-256", "localhost", "key.pem", "cert.pem", 365);
+ramzara_generate_self_signed("ec:p-256", "localhost", "key.pem", "cert.pem", 365);
 char err[256];
-if (vtls_verify("ca.pem", "leaf.pem", "example.com", err, sizeof err) != 0)
+if (ramzara_verify("ca.pem", "leaf.pem", "example.com", err, sizeof err) != 0)
 	fprintf(stderr, "bad chain: %s\n", err);
 ```
 
@@ -65,12 +67,12 @@ Key types: `rsa[:2048|:3072]`, `ec:p-256|p-384|p-521`, `ed25519`,
 
 ## Artifacts
 
-Each tag release ships `vtls.h`, one prebuilt shared library per OS,
+Each tag release ships `ramzara.h`, one prebuilt shared library per OS,
 and `demo.c`. A single-file C amalgamation is future work (the V
 `-shared` build does not emit a self-contained translation unit).
 ABI rule: only C-compatible types cross the boundary; all out-params
 are caller-owned buffers with explicit lengths (except
-`vtls_last_error()` / `vtls_version()`, valid until the next call on
+`ramzara_last_error()` / `ramzara_version()`, valid until the next call on
 the same thread).
 
 ## Limits (v1)

@@ -324,7 +324,7 @@ fn verify_mac(mac_tlv []u8, auth_bytes []u8, password string) ! {
 	} else {
 		got = hmac.new(mac_key, auth_bytes, sha256.sum256, 64)
 	}
-	if !verify_hmac(got, want) {
+	if !hmac.equal(got, want) {
 		return error('pkcs12: bad MAC (wrong password or tampered data)')
 	}
 }

@@ -1,6 +1,6 @@
 module x509
 
-import metif12.vtls.slh_dsa
+import metif12.ramzara.slh_dsa
 
 // slh_dsa_sigalg_oid maps an SLH-DSA parameter set to its
 // signature-algorithm OID (which doubles as the SPKI algorithm OID,

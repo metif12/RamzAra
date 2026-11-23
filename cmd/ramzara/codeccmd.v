@@ -12,8 +12,8 @@ import os
 import time
 import x.crypto.chacha20
 import x.crypto.chacha20poly1305
-import metif12.vtls.mlkem
-import metif12.vtls.rsa
+import metif12.ramzara.mlkem
+import metif12.ramzara.rsa
 
 fn cmd_enc(args []string) {
 	want_gcm128 := has_flag(args, 'aes-128-gcm')

@@ -9,6 +9,13 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   V_PIN: bf074d87e6bd4206c8967fcf18b10004e7c85716
 
@@ -16,6 +23,7 @@ jobs:
   fmt:
     name: fmt clean
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Build pinned V
@@ -28,6 +36,7 @@ jobs:
   test:
     name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -40,7 +49,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p ~/.vmodules/metif12
-          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
+          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/ramzara
+          rm -rf ~/.vmodules/metif12/ramzara/.git
       - name: Run full suite
         shell: bash
         run: |
@@ -49,20 +59,21 @@ jobs:
           # produced timeout flakes on windows/macos runners.
           export VJOBS=2
           "$VBIN" -Wimpure-v -enable-globals -silent test \
-            ~/.vmodules/metif12/vtls/tls \
-            ~/.vmodules/metif12/vtls/tls12 \
-            ~/.vmodules/metif12/vtls/dtls12 \
-            ~/.vmodules/metif12/vtls/x509 \
-            ~/.vmodules/metif12/vtls/pkcs12 \
-            ~/.vmodules/metif12/vtls/slh_dsa \
-            ~/.vmodules/metif12/vtls/rsa \
-            ~/.vmodules/metif12/vtls/kat \
-            ~/.vmodules/metif12/vtls/mlkem \
-            ~/.vmodules/metif12/vtls/toolkit
+            ~/.vmodules/metif12/ramzara/tls \
+            ~/.vmodules/metif12/ramzara/tls12 \
+            ~/.vmodules/metif12/ramzara/dtls12 \
+            ~/.vmodules/metif12/ramzara/x509 \
+            ~/.vmodules/metif12/ramzara/pkcs12 \
+            ~/.vmodules/metif12/ramzara/slh_dsa \
+            ~/.vmodules/metif12/ramzara/rsa \
+            ~/.vmodules/metif12/ramzara/kat \
+            ~/.vmodules/metif12/ramzara/mlkem \
+            ~/.vmodules/metif12/ramzara/toolkit
 
   openssl-interop:
     name: openssl interop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -80,27 +91,28 @@ jobs:
         run: |
           openssl version
           mkdir -p ~/.vmodules/metif12
-          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
+          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/ramzara
+          rm -rf ~/.vmodules/metif12/ramzara/.git
       - name: Build the CLI
         shell: bash
-        run: '"$VBIN" -Wimpure-v -enable-globals -o "$GITHUB_WORKSPACE/vtls-bin" "$GITHUB_WORKSPACE/cmd/vtls"'
-      - name: vtls req + openssl verify
+        run: '"$VBIN" -Wimpure-v -enable-globals -o "$GITHUB_WORKSPACE/ramzara-bin" "$GITHUB_WORKSPACE/cmd/ramzara"'
+      - name: ramzara req + openssl verify
         shell: bash
         run: |
           cd "$RUNNER_TEMP"
-          "$GITHUB_WORKSPACE/vtls-bin" req -newkey ec:p-256 -keyout k.pem -out c.pem -subj /CN=localhost -days 30
+          "$GITHUB_WORKSPACE/ramzara-bin" req -newkey ec:p-256 -keyout k.pem -out c.pem -subj /CN=localhost -days 30
           openssl x509 -in c.pem -noout -subject
-          "$GITHUB_WORKSPACE/vtls-bin" verify -CAfile c.pem c.pem -hostname localhost
-      - name: vtls s_server vs openssl s_client
+          "$GITHUB_WORKSPACE/ramzara-bin" verify -CAfile c.pem c.pem -hostname localhost
+      - name: ramzara s_server vs openssl s_client
         shell: bash
         run: |
           cd "$RUNNER_TEMP"
-          "$GITHUB_WORKSPACE/vtls-bin" s_server -accept 18443 -cert c.pem -key k.pem -naccept 1 &
+          "$GITHUB_WORKSPACE/ramzara-bin" s_server -accept 18443 -cert c.pem -key k.pem -naccept 1 &
           SRV=$!
           sleep 2
           printf 'ping' | openssl s_client -connect 127.0.0.1:18443 -CAfile c.pem -quiet
           wait $SRV
-      - name: openssl s_server vs vtls s_client
+      - name: openssl s_server vs ramzara s_client
         shell: bash
         run: |
           cd "$RUNNER_TEMP"
@@ -117,5 +129,5 @@ jobs:
           # dialed host (like Go); the cert is for localhost, not the
           # 127.0.0.1 we connect to. (openssl s_client skips this check
           # unless -verify_hostname is given.)
-          printf 'ping' | "$GITHUB_WORKSPACE/vtls-bin" s_client -connect 127.0.0.1:18444 -servername localhost -CAfile c.pem -brief
+          printf 'ping' | "$GITHUB_WORKSPACE/ramzara-bin" s_client -connect 127.0.0.1:18444 -servername localhost -CAfile c.pem -brief
           wait $SRV

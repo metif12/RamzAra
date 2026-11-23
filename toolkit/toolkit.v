@@ -1,5 +1,5 @@
-// toolkit generates keys and self-signed certificates using only the vtls
-// modules and the V standard library. The `vtls` CLI is a thin wrapper
+// toolkit generates keys and self-signed certificates using only the ramzara
+// modules and the V standard library. The `ramzara` CLI is a thin wrapper
 // around this module, so every emitted format is covered by toolkit tests,
 // including a real TLS 1.3 loopback per key family (which proves the
 // generated keys are accepted by the TLS credential loader).
@@ -12,9 +12,9 @@ import crypto.sha256
 import encoding.hex
 import time
 import x.crypto.mldsa
-import metif12.vtls.rsa
-import metif12.vtls.slh_dsa
-import metif12.vtls.x509
+import metif12.ramzara.rsa
+import metif12.ramzara.slh_dsa
+import metif12.ramzara.x509
 
 // KeyType selects the key algorithm for generation.
 pub enum KeyType {
@@ -289,7 +289,7 @@ pub fn pem_encode(block_type string, der []u8) !string {
 }
 
 // cert_text renders a human-readable summary of a certificate
-// (used by `vtls x509 -text`).
+// (used by `ramzara x509 -text`).
 pub fn cert_text(c x509.Certificate) string {
 	mut b := []u8{}
 	b << 'Subject: ${name_text(c.subject)}\n'.bytes()

@@ -3,7 +3,7 @@ module tls
 
 import os
 import crypto.pem
-import metif12.vtls.x509
+import metif12.ramzara.x509
 
 pub const error_chain_untrusted = 'tls: error_chain_untrusted'
 pub const error_chain_expired = 'tls: error_chain_expired'

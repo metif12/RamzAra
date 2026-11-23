@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // TLS 1.2 client/server connections over TCP (module tls12).
-// Standalone: does not import net.tls internals.
+// Standalone: does not import tls internals.
 module tls12
 
 import net

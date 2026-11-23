@@ -2,7 +2,7 @@ module tls
 
 import crypto.rand
 import crypto.subtle
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import net
 import os
 import time
@@ -253,7 +253,7 @@ fn (mut c Conn) write_cipher_record(ct ContentType, data []u8) ! {
 	c.write_seq++
 }
 
-// shutdown closes the connection (net.ssl compatibility adapter).
+// shutdown closes the connection (legacy socket-adapter compatibility).
 // shutdown closes the TLS connection without sending close_notify.
 pub fn (mut c Conn) shutdown() ! {
 	c.close()!
@@ -269,7 +269,7 @@ pub fn (mut c Conn) send_close_notify() ! {
 	c.write_cipher_fragmented(.alert, alert_bytes(.warning, .close_notify))!
 }
 
-// set_read_timeout is a no-op placeholder for net.ssl compatibility.
+// set_read_timeout is a no-op placeholder for legacy API compatibility.
 pub fn (mut c Conn) set_read_timeout(_ time.Duration) {
 	// no-op for now
 }
@@ -382,7 +382,7 @@ pub fn (c &Conn) resumed() bool {
 	return c.resumed
 }
 
-// socket_read_into_ptr reads decrypted data into a raw pointer (net.ssl compatibility).
+// socket_read_into_ptr reads decrypted data into a raw pointer (legacy helper for C-style callers).
 pub fn (mut c Conn) socket_read_into_ptr(buf &u8, bufsize int) !int {
 	mut tmp := []u8{len: bufsize}
 	n := c.read(mut tmp)!

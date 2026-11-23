@@ -19,6 +19,8 @@ runs:
         # stale-layout restore breaks the build below.
         path: ~/vlang-build
         key: vlang-build-v1-${{ env.V_PIN }}-${{ runner.os }}
+        restore-keys: |
+          vlang-build-v1-${{ env.V_PIN }}-
     - name: Clone V
       if: steps.vcache.outputs.cache-hit != 'true'
       shell: bash

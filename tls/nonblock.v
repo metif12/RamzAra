@@ -1,4 +1,4 @@
-// nonblock.v — timeout-aware dials and async dial for net.tls.
+// nonblock.v — timeout-aware dials and async dial for tls.
 //
 // This file only *uses* the existing Conn/Config/dial/listen API; it does
 // not modify conn.v, client.v, server.v or tls.v. Timeouts are enforced with
@@ -107,7 +107,7 @@ pub fn is_timeout(err IError) bool {
 // Positive values are applied via net.TcpConn.set_read_timeout /
 // set_write_timeout; zero restores the blocking default (net.no_timeout).
 // Note this intentionally bypasses Conn.set_read_timeout, which is a
-// no-op placeholder kept for net.ssl compatibility.
+// no-op placeholder kept for legacy API compatibility.
 pub fn apply_timeouts(mut c Conn, t Timeouts) {
 	if t.read_timeout_ms > 0 {
 		c.tcp.set_read_timeout(time.Duration(t.read_timeout_ms) * time.millisecond)

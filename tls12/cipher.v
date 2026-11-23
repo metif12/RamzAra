@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // TLS 1.2 cipher suite definitions (RFC 5246, RFC 5288, RFC 5289).
-// This module is standalone: it does not import net.tls internals.
+// This module is standalone: it does not import tls internals.
 module tls12
 
 // wires versions

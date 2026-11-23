@@ -1,5 +1,5 @@
-// vtls — pure-V TLS/PKI stack and OpenSSL replacement.
-// Usage: vtls <command> [options]
+// RamzAra — pure-V TLS/PKI stack and OpenSSL replacement.
+// Usage: ramzara <command> [options]
 //
 // Network:    s_client  s_server
 // PKI:        req  x509  verify  crl  ocsp  pkcs12
@@ -31,7 +31,7 @@ fn main() {
 		'speed' { cmd_speed(rest) }
 		'help', '-h', '--help' { usage() }
 		else {
-			eprintln('vtls: unknown command `${cmd}`')
+			eprintln('ramzara: unknown command `${cmd}`')
 			usage()
 			exit(1)
 		}
@@ -39,7 +39,7 @@ fn main() {
 }
 
 fn usage() {
-	println('usage: vtls <command> [options]\n')
+	println('usage: ramzara <command> [options]\n')
 	println('  s_client -connect host:port [-servername name] [-CAfile f] [-alpn l]')
 	println('           [-tls1_2] [-insecure] [-keylog f] [-reconnect n] [-brief] [-waitms ms]')
 	println('  s_server -accept port -cert f -key f [-Verify [-CAfile f]] [-www] [-naccept n]')
@@ -116,6 +116,6 @@ fn rest_args(args []string, value_flags []string) []string {
 
 @[noreturn]
 fn die(msg string) {
-	eprintln('vtls: ${msg}')
+	eprintln('ramzara: ${msg}')
 	exit(1)
 }

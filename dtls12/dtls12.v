@@ -3,7 +3,7 @@
 // that can be found in the LICENSE file.
 
 // dtls12 is a minimal DTLS 1.2 (RFC 6347) profile over UDP (epoch 0/1).
-// File-disjoint from net.tls and net.tls12: own Config/Conn, own record and
+// File-disjoint from tls and tls12: own Config/Conn, own record and
 // handshake codecs over the TLS 1.2 PRF with the GCM + CBC+HMAC suite subset.
 // The handshake does ECDHE (P-256): the server sends ServerKeyExchange with
 // an ephemeral share signed by its ECDSA key, the client answers with

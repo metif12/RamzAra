@@ -1,15 +1,15 @@
-// vtls_c.v — C ABI shim over the vtls modules. Built with:
-//   v -shared -o libvtls.so capi/vtls_c.v        (Linux)
-//   v -shared -o vtls.dll capi/vtls_c.v          (Windows)
-//   v -shared -o libvtls.dylib capi/vtls_c.v     (macOS)
-// The public contract is c/vtls.h; symbol names below must match it.
+// ramzara_c.v — C ABI shim over the ramzara modules. Built with:
+//   v -shared -o libramzara.so capi/ramzara_c.v        (Linux)
+//   v -shared -o ramzara.dll capi/ramzara_c.v          (Windows)
+//   v -shared -o libramzara.dylib capi/ramzara_c.v     (macOS)
+// The public contract is c/ramzara.h; symbol names below must match it.
 module main
 
 import crypto.pem
 import os
-import metif12.vtls.tls
-import metif12.vtls.toolkit
-import metif12.vtls.x509
+import metif12.ramzara.tls
+import metif12.ramzara.toolkit
+import metif12.ramzara.x509
 
 __global (
 	c_last_error  string
@@ -59,8 +59,8 @@ mut:
 	l &tls.Listener
 }
 
-@[export: 'vtls_dial']
-fn cvtls_dial(host &char, port int, server_name &char, ca_file &char, insecure int) &CVConn {
+@[export: 'ramzara_dial']
+fn cramzara_dial(host &char, port int, server_name &char, ca_file &char, insecure int) &CVConn {
 	h := c_str(host)
 	mut cfg := tls.Config{
 		server_name: c_str(server_name)
@@ -85,8 +85,8 @@ fn cvtls_dial(host &char, port int, server_name &char, ca_file &char, insecure i
 	return &CVConn{ conn: conn }
 }
 
-@[export: 'vtls_read']
-fn cvtls_read(c &CVConn, buf &u8, len int) int {
+@[export: 'ramzara_read']
+fn cramzara_read(c &CVConn, buf &u8, len int) int {
 	if c == unsafe { nil } || buf == unsafe { nil } || len <= 0 {
 		set_err('read: bad argument')
 		return -1
@@ -102,8 +102,8 @@ fn cvtls_read(c &CVConn, buf &u8, len int) int {
 	return n
 }
 
-@[export: 'vtls_write']
-fn cvtls_write(c &CVConn, buf &u8, len int) int {
+@[export: 'ramzara_write']
+fn cramzara_write(c &CVConn, buf &u8, len int) int {
 	if c == unsafe { nil } || buf == unsafe { nil } || len < 0 {
 		set_err('write: bad argument')
 		return -1
@@ -122,16 +122,16 @@ fn cvtls_write(c &CVConn, buf &u8, len int) int {
 	return len
 }
 
-@[export: 'vtls_close']
-fn cvtls_close(c &CVConn) {
+@[export: 'ramzara_close']
+fn cramzara_close(c &CVConn) {
 	if c == unsafe { nil } {
 		return
 	}
 	c.conn.close() or {}
 }
 
-@[export: 'vtls_cipher_name']
-fn cvtls_cipher_name(c &CVConn, out &char, outlen int) int {
+@[export: 'ramzara_cipher_name']
+fn cramzara_cipher_name(c &CVConn, out &char, outlen int) int {
 	if c == unsafe { nil } {
 		set_err('cipher: bad handle')
 		return -1
@@ -140,16 +140,16 @@ fn cvtls_cipher_name(c &CVConn, out &char, outlen int) int {
 	return 0
 }
 
-@[export: 'vtls_resumed']
-fn cvtls_resumed(c &CVConn) int {
+@[export: 'ramzara_resumed']
+fn cramzara_resumed(c &CVConn) int {
 	if c == unsafe { nil } {
 		return 0
 	}
 	return if c.conn.resumed() { 1 } else { 0 }
 }
 
-@[export: 'vtls_listen']
-fn cvtls_listen(port int, cert_file &char, key_file &char) &CVListener {
+@[export: 'ramzara_listen']
+fn cramzara_listen(port int, cert_file &char, key_file &char) &CVListener {
 	mut l := tls.listen_on('127.0.0.1:${port}', tls.Config{
 		cert: c_str(cert_file)
 		key:  c_str(key_file)
@@ -160,8 +160,8 @@ fn cvtls_listen(port int, cert_file &char, key_file &char) &CVListener {
 	return &CVListener{ l: l }
 }
 
-@[export: 'vtls_accept']
-fn cvtls_accept(l &CVListener) &CVConn {
+@[export: 'ramzara_accept']
+fn cramzara_accept(l &CVListener) &CVConn {
 	if l == unsafe { nil } {
 		set_err('accept: bad handle')
 		return unsafe { nil }
@@ -173,16 +173,16 @@ fn cvtls_accept(l &CVListener) &CVConn {
 	return &CVConn{ conn: conn }
 }
 
-@[export: 'vtls_listener_close']
-fn cvtls_listener_close(l &CVListener) {
+@[export: 'ramzara_listener_close']
+fn cramzara_listener_close(l &CVListener) {
 	if l == unsafe { nil } {
 		return
 	}
 	l.l.close() or {}
 }
 
-@[export: 'vtls_generate_self_signed']
-fn cvtls_generate_self_signed(key_type &char, cn &char, key_out &char, cert_out &char, days int) int {
+@[export: 'ramzara_generate_self_signed']
+fn cramzara_generate_self_signed(key_type &char, cn &char, key_out &char, cert_out &char, days int) int {
 	real_days := if days <= 0 { 365 } else { days }
 	g := toolkit.generate_self_signed(c_str(key_type), c_str(cn), [], real_days,
 		false) or {
@@ -200,8 +200,8 @@ fn cvtls_generate_self_signed(key_type &char, cn &char, key_out &char, cert_out 
 	return 0
 }
 
-@[export: 'vtls_verify']
-fn cvtls_verify(ca_bundle &char, leaf_pem &char, hostname &char, errbuf &char, errlen int) int {
+@[export: 'ramzara_verify']
+fn cramzara_verify(ca_bundle &char, leaf_pem &char, hostname &char, errbuf &char, errlen int) int {
 	cas := os.read_file(c_str(ca_bundle)) or {
 		set_err('verify: ${err}')
 		copy_out('verify: ${err}', errbuf, errlen)
@@ -255,8 +255,8 @@ fn pem_cert_ders_of(text string) [][]u8 {
 	return out
 }
 
-@[export: 'vtls_cert_text']
-fn cvtls_cert_text(cert_pem &char, out &char, outlen int) int {
+@[export: 'ramzara_cert_text']
+fn cramzara_cert_text(cert_pem &char, out &char, outlen int) int {
 	cert := x509.parse_pem(c_str(cert_pem)) or {
 		set_err('cert_text: ${err}')
 		return -1
@@ -265,8 +265,8 @@ fn cvtls_cert_text(cert_pem &char, out &char, outlen int) int {
 	return 0
 }
 
-@[export: 'vtls_last_error']
-fn cvtls_last_error() &char {
+@[export: 'ramzara_last_error']
+fn cramzara_last_error() &char {
 	if c_err_buf.len == 0 {
 		c_err_buf = 'no error'.bytes()
 		c_err_buf << u8(0)
@@ -274,8 +274,8 @@ fn cvtls_last_error() &char {
 	return &char(c_err_buf.data)
 }
 
-@[export: 'vtls_version']
-fn cvtls_version() &char {
+@[export: 'ramzara_version']
+fn cramzara_version() &char {
 	if c_version_buf.len == 0 {
 		c_version_buf = '0.1.0'.bytes()
 		c_version_buf << u8(0)

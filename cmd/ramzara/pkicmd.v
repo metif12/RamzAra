@@ -7,9 +7,9 @@ import crypto.sha256
 import encoding.hex
 import os
 import time
-import metif12.vtls.pkcs12
-import metif12.vtls.toolkit
-import metif12.vtls.x509
+import metif12.ramzara.pkcs12
+import metif12.ramzara.toolkit
+import metif12.ramzara.x509
 
 // pem_cert_ders decodes every CERTIFICATE block in a PEM bundle.
 fn pem_cert_ders(text string) [][]u8 {
@@ -64,7 +64,7 @@ fn dn_text(m map[string]string) string {
 fn secure_write_key(path string, data string) ! {
 	os.write_file(path, data)!
 	$if unix {
-		os.chmod(path, 0o600) or { eprintln('vtls: warning: cannot chmod ${path}: ${err}') }
+		os.chmod(path, 0o600) or { eprintln('ramzara: warning: cannot chmod ${path}: ${err}') }
 	}
 }
 
@@ -265,7 +265,7 @@ fn cmd_pkcs12(args []string) {
 	}
 	pw := flag_value(args, 'passin')
 	out := flag_value(args, 'out')
-	prefix := if out == '' { 'vtls-out' } else { out }
+	prefix := if out == '' { 'ramzara-out' } else { out }
 	data := os.read_bytes(inp) or { die('pkcs12: ${err}') }
 	dec := pkcs12.decode(data, pw) or { die('pkcs12: ${err}') }
 	secure_write_key('${prefix}.key.pem', pem.Block{

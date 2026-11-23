@@ -1,7 +1,7 @@
 module tls
 
 import crypto.pem
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import encoding.hex
 import math.big
 import os

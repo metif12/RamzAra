@@ -14,15 +14,17 @@ jobs:
   build:
     name: lib (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            out: libvtls.so
+            out: libramzara.so
           - os: windows-latest
-            out: vtls.dll
+            out: ramzara.dll
           - os: macos-latest
-            out: libvtls.dylib
+            out: libramzara.dylib
     steps:
       - uses: actions/checkout@v4
       - name: Build pinned V
@@ -31,30 +33,39 @@ jobs:
         shell: bash
         run: |
           mkdir -p ~/.vmodules/metif12
-          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/vtls
+          cp -r "$GITHUB_WORKSPACE" ~/.vmodules/metif12/ramzara
+          rm -rf ~/.vmodules/metif12/ramzara/.git
       - name: Build shared library
         shell: bash
         run: |
           # Emit into $GITHUB_WORKSPACE (not ~/.vmodules): upload-artifact
           # requires every path under one workspace root, and absolute
           # home-dir paths break its rootDirectory computation on Windows.
-          cd ~/.vmodules/metif12/vtls
+          cd ~/.vmodules/metif12/ramzara
           if [ "${{ runner.os }}" = "Windows" ]; then
-            "$VBIN" -Wimpure-v -enable-globals -shared -cflags "-Wl,--export-all-symbols" -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/vtls_c.v
-            dlltool -d c/vtls.def --dllname "${{ matrix.out }}" -l "$GITHUB_WORKSPACE/libvtls.dll.a"
+            "$VBIN" -Wimpure-v -enable-globals -shared -cflags "-Wl,--export-all-symbols" -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/ramzara_c.v
+            dlltool -d c/ramzara.def --dllname "${{ matrix.out }}" -l "$GITHUB_WORKSPACE/libramzara.dll.a"
           else
-            "$VBIN" -Wimpure-v -enable-globals -shared -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/vtls_c.v
+            "$VBIN" -Wimpure-v -enable-globals -shared -o "$GITHUB_WORKSPACE/${{ matrix.out }}" capi/ramzara_c.v
+          fi
+          ls -la "$GITHUB_WORKSPACE/${{ matrix.out }}"
+          # Strip debug symbols where available; never fail the build.
+          # Linux: --strip-unneeded keeps dynamic symbols. macOS: -x (local symbols).
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            strip -x "$GITHUB_WORKSPACE/${{ matrix.out }}" || echo 'strip unavailable'
+          else
+            strip --strip-unneeded "$GITHUB_WORKSPACE/${{ matrix.out }}" || echo 'strip unavailable'
           fi
           ls -la "$GITHUB_WORKSPACE/${{ matrix.out }}"
       - name: Verify C exports
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
-            objdump -p "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+            objdump -p "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'ramzara_(dial|read|write|close|verify|cert_text|last_error|version)'
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            nm -g "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+            nm -g "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'ramzara_(dial|read|write|close|verify|cert_text|last_error|version)'
           else
-            nm -D --defined-only "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'vtls_(dial|read|write|close|verify|cert_text|last_error|version)'
+            nm -D --defined-only "$GITHUB_WORKSPACE/${{ matrix.out }}" | grep -E 'ramzara_(dial|read|write|close|verify|cert_text|last_error|version)'
           fi
       - name: Build C demo (link check)
         shell: bash
@@ -62,12 +73,12 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           if [ "${{ runner.os }}" = "Windows" ]; then
             if command -v gcc >/dev/null; then
-              gcc -o demo.exe c/demo.c -Ic -L. -lvtls
+              gcc -o demo.exe c/demo.c -Ic -L. -lramzara
             else
-              "$HOME/vlang-build/thirdparty/tcc/tcc.exe" -o demo.exe c/demo.c -Ic vtls.dll
+              "$HOME/vlang-build/thirdparty/tcc/tcc.exe" -o demo.exe c/demo.c -Ic ramzara.dll
             fi
           else
-            cc -o demo c/demo.c -Ic -L. -lvtls
+            cc -o demo c/demo.c -Ic -L. -lramzara
           fi
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -75,15 +86,16 @@ jobs:
           name: ${{ matrix.out }}
           path: |
             ${{ matrix.out }}
-            libvtls.dll.a
-            c/vtls.h
-            c/vtls.def
+            libramzara.dll.a
+            c/ramzara.h
+            c/ramzara.def
             c/demo.c
 
   release:
     name: publish release
     needs: [build]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
@@ -95,10 +107,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/libvtls.so/libvtls.so
-            dist/vtls.dll/vtls.dll
-            dist/vtls.dll/libvtls.dll.a
-            dist/libvtls.dylib/libvtls.dylib
-            c/vtls.h
-            c/vtls.def
+            dist/libramzara.so/libramzara.so
+            dist/ramzara.dll/ramzara.dll
+            dist/ramzara.dll/libramzara.dll.a
+            dist/libramzara.dylib/libramzara.dylib
+            c/ramzara.h
+            c/ramzara.def
             c/demo.c

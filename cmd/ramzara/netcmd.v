@@ -3,8 +3,8 @@ module main
 
 import os
 import time
-import metif12.vtls.tls
-import metif12.vtls.tls12
+import metif12.ramzara.tls
+import metif12.ramzara.tls12
 
 fn cmd_s_client(args []string) {
 	connect := flag_value(args, 'connect')
@@ -36,7 +36,7 @@ fn cmd_s_client(args []string) {
 		cfg.alpn_protocols = alpn.split(',')
 	}
 	if has_flag(args, 'keylog') {
-		eprintln('vtls: s_client: -keylog is not supported by the pure-V stack (no SSLKEYLOGFILE hook in v1)')
+		eprintln('ramzara: s_client: -keylog is not supported by the pure-V stack (no SSLKEYLOGFILE hook in v1)')
 	}
 	mut c := tls.dial(host, port, cfg) or { die('s_client: dial: ${err}') }
 	c.handshake() or { die('s_client: handshake: ${err}') }
@@ -150,14 +150,14 @@ fn cmd_s_server(args []string) {
 	mut l := tls.listen_on('127.0.0.1:${port}', cfg) or {
 		die('s_server: listen: ${err}')
 	}
-	eprintln('vtls: s_server listening on 127.0.0.1:${port}')
+	eprintln('ramzara: s_server listening on 127.0.0.1:${port}')
 	mut served := 0
 	for {
 		if naccept > 0 && served >= naccept {
 			break
 		}
 		mut conn := l.accept() or {
-			eprintln('vtls: s_server: accept: ${err}')
+			eprintln('ramzara: s_server: accept: ${err}')
 			continue
 		}
 		served++
@@ -199,7 +199,7 @@ fn serve_www(mut conn tls.Conn) {
 			break
 		}
 	}
-	body := 'vtls s_server status page\ncipher: ${conn.negotiated_cipher()}\n'
+	body := 'ramzara s_server status page\ncipher: ${conn.negotiated_cipher()}\n'
 	head := 'HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${body.len}\r\nConnection: close\r\n\r\n'
 	conn.write((head + body).bytes()) or {}
 }

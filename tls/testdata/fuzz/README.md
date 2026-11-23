@@ -1,6 +1,6 @@
 # TLS fuzz corpus (deterministic seeds)
 
-Fixed seeds for `vlib/net/tls/fuzz_test.v` (`test_fuzz_corpus_no_panic`).
+Fixed seeds for `tls/fuzz_test.v` (`test_fuzz_corpus_no_panic`).
 Every file is exercised both verbatim (must parse) and under
 single-byte mutations (must fail closed, never panic).
 
@@ -16,7 +16,7 @@ single-byte mutations (must fail closed, never panic).
 | `pem_seed.pem`            | minimal valid CERTIFICATE block           | `pem.decode`               |
 
 Regenerating: the `*.hex` seeds are written by the `genseeds.v` helper
-(kept outside the repo, in the assurance TMPDIR) which uses the `net.tls`
+(kept outside the repo, in the assurance TMPDIR) which uses the `tls`
 encoders; `pem_seed.pem` is written by the `genpem.v` helper via
 `crypto.pem` encoding (self-decode verified). Seeds are checked in so runs
 stay deterministic without network access.

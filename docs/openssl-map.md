@@ -1,10 +1,11 @@
-# OpenSSL → vtls command map
+# OpenSSL → ramzara command map
 
-The `vtls` CLI covers the TLS/PKI subset of OpenSSL. General-purpose
+The `ramzara` CLI covers the TLS/PKI subset of OpenSSL (flags per
+command: [`api.md`](api.md) CLI section). General-purpose
 crypto outside TLS/PKI (ciphers for files, password hashing, CMS/SMIME)
 is intentionally out of scope.
 
-| openssl | vtls | notes |
+| openssl | ramzara | notes |
 |---|---|---|
 | `s_client -connect h:p` | `s_client -connect h:p` | + `-servername -CAfile -alpn -tls1_2 -insecure -reconnect -brief`; stdin relay, no interactive key renegotiation |
 | `s_server -accept p` | `s_server -accept p -cert f -key f` | echo or `-www`; `-Verify [-CAfile]` for mTLS; `-naccept` |

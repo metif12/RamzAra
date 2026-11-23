@@ -3,7 +3,6 @@ module pkcs12
 import crypto.aes
 import crypto.cipher
 import crypto.des
-import crypto.hmac
 import crypto.pbkdf2
 import crypto.rand
 import crypto.sha1
@@ -429,9 +428,4 @@ fn pbe_encrypt(alg_oid string, password []u8, salt []u8, iterations int, plainte
 		return ct, alg
 	}
 	return error('pkcs12: unsupported PBE ${alg_oid} for encryption')
-}
-
-// verify_hmac compares two MACs in constant time.
-fn verify_hmac(a []u8, b []u8) bool {
-	return hmac.equal(a, b)
 }

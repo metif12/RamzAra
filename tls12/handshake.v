@@ -8,7 +8,7 @@
 // ChangeCipherSpec and Finished, plus the SHA256 PRF. Adds RFC 7627
 // extended_master_secret, RFC 7366 encrypt-then-MAC, RFC 5746 secure
 // renegotiation and session-ID resumption with a bounded in-memory
-// server cache. Standalone; shares no code with net.tls.
+// server cache. Standalone; shares no code with tls.
 module tls12
 
 import crypto.hmac

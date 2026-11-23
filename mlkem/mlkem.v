@@ -319,6 +319,15 @@ pub fn sample_cbd3(b []u8) Poly {
 	return f
 }
 
+// sample_cbd_eta samples a centered-binomial-distribution polynomial
+// for the given eta (2 or 3), collapsing the repeated eta dispatch.
+fn sample_cbd_eta(eta int, b []u8) Poly {
+	if eta == 2 {
+		return sample_cbd2(b)
+	}
+	return sample_cbd3(b)
+}
+
 // ---------- byte encoding ----------
 
 pub fn poly_to_bytes(f Poly) []u8 {
@@ -416,11 +425,7 @@ fn kpke_keygen_params(p MlKemParams, d []u8) !([]u8, []u8) {
 		inbuf << u8(nctr)
 		nctr++
 		b := shake256_xof(inbuf, 64 * eta1_)
-		if eta1_ == 2 {
-			s[i] = sample_cbd2(b)
-		} else {
-			s[i] = sample_cbd3(b)
-		}
+		s[i] = sample_cbd_eta(eta1_, b)
 	}
 	mut e := PolyVec{}
 	for i in 0 .. kk {
@@ -429,11 +434,7 @@ fn kpke_keygen_params(p MlKemParams, d []u8) !([]u8, []u8) {
 		inbuf << u8(nctr)
 		nctr++
 		b := shake256_xof(inbuf, 64 * eta1_)
-		if eta1_ == 2 {
-			e[i] = sample_cbd2(b)
-		} else {
-			e[i] = sample_cbd3(b)
-		}
+		e[i] = sample_cbd_eta(eta1_, b)
 	}
 	mut s_hat := PolyVec{}
 	mut e_hat := PolyVec{}
@@ -502,11 +503,7 @@ fn kpke_encrypt_params(p MlKemParams, ek []u8, m []u8, r []u8) ![]u8 {
 		inbuf << u8(nctr)
 		nctr++
 		b := shake256_xof(inbuf, 64 * eta1_)
-		if eta1_ == 2 {
-			rr[i] = sample_cbd2(b)
-		} else {
-			rr[i] = sample_cbd3(b)
-		}
+		rr[i] = sample_cbd_eta(eta1_, b)
 	}
 	mut e1 := PolyVec{}
 	for i in 0 .. kk {
@@ -515,11 +512,7 @@ fn kpke_encrypt_params(p MlKemParams, ek []u8, m []u8, r []u8) ![]u8 {
 		inbuf << u8(nctr)
 		nctr++
 		b := shake256_xof(inbuf, 64 * eta1_)
-		if eta1_ == 2 {
-			e1[i] = sample_cbd2(b)
-		} else {
-			e1[i] = sample_cbd3(b)
-		}
+		e1[i] = sample_cbd_eta(eta1_, b)
 	}
 	mut inbuf2 := []u8{}
 	inbuf2 << r

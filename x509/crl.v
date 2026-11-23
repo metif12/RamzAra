@@ -7,7 +7,7 @@ import crypto.rand
 import crypto.sha1
 import crypto.sha256
 import crypto.sha512
-import metif12.vtls.slh_dsa
+import metif12.ramzara.slh_dsa
 import math.big
 import os
 import time

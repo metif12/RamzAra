@@ -109,7 +109,7 @@ fn test_openssl_cert_parses_under_v() {
 // test_our_mldsa_der_parses_under_openssl checks V-generated ML-DSA
 // certificates parse under openssl for every variant.
 // Skips without openssl; the same key material is covered without skips by
-// test_sig_vgen_mldsa_chains and test_sig_mldsa_chain in net.tls.
+// test_sig_vgen_mldsa_chains and test_sig_mldsa_chain in tls.
 fn test_our_mldsa_der_parses_under_openssl() {
 	bin := openssl_bin()
 	if bin == '' {
@@ -140,7 +140,7 @@ fn test_our_mldsa_der_parses_under_openssl() {
 // test_our_mldsa_ca_signed_verifies_under_openssl checks V-generated ML-DSA
 // CA/leaf pairs verify under openssl for every variant.
 // Skips without openssl; V-side verification of the same shapes is covered
-// without skips by test_sig_mldsa_chain in net.tls.
+// without skips by test_sig_mldsa_chain in tls.
 fn test_our_mldsa_ca_signed_verifies_under_openssl() {
 	bin := openssl_bin()
 	if bin == '' {

@@ -1,4 +1,4 @@
-# crypto.x509
+# x509
 
 `parse_pem(text)!` skips other PEM blocks and reads the first `CERTIFICATE` block.
 `parse_der(bytes)!` reads one
@@ -53,7 +53,7 @@ ML-DSA, SLH-DSA-SHAKE).
 
 No `Config` fields are added for revocation inputs. CRLs are read from the environment,
 mirroring the `SSL_CERT_FILE` / `SSL_CERT_DIR` pattern used for trust roots
-(see `net.tls`): `SSL_CRL_FILE` (explicit bundle of `X509 CRL` PEM blocks or DER),
+(see `tls`): `SSL_CRL_FILE` (explicit bundle of `X509 CRL` PEM blocks or DER),
 `SSL_CRL_DIR` (directory scan of `*.crl`/`*.pem`/`*.der`), plus the directory containing
 `SSL_CERT_FILE` (same-dir convention). Unparsable files are skipped; an empty result
 means "no revocation data", not an error. Use `load_system_crls()` and pass the result

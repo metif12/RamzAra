@@ -1,6 +1,8 @@
-# vtls usage guide (V)
+# RamzAra usage guide (V)
 
-Install: `v install metif12.vtls`, then `import metif12.vtls.tls`
+Full symbol reference: [`api.md`](api.md).
+
+Install: `v install metif12.ramzara`, then `import metif12.ramzara.tls`
 (or `tls12`, `dtls12`, `x509`, `pkcs12`, `rsa`, `slh_dsa`, `toolkit`).
 Requires a V toolchain newer than 0.5.2 (needs `x.crypto.mlkem` in
 stdlib); CI pins the exact commit.
@@ -8,7 +10,7 @@ stdlib); CI pins the exact commit.
 ## TLS 1.3 client
 
 ```v
-import metif12.vtls.tls
+import metif12.ramzara.tls
 
 mut c := tls.dial('example.com', 443, tls.Config{
 	server_name: 'example.com', // empty means the dialed host
@@ -62,7 +64,7 @@ binds a specific address (the CLI uses it for `-accept`).
 Standalone module, no shared code with `tls`:
 
 ```v
-import metif12.vtls.tls12
+import metif12.ramzara.tls12
 
 mut c := tls12.dial('example.com', 443, tls12.Config{
 	server_name: 'example.com', // empty means the dialed host
@@ -79,7 +81,7 @@ Needs `-enable-globals` (in-memory session cache). Session resumption via
 ## DTLS 1.2 (`dtls12`)
 
 ```v
-import metif12.vtls.dtls12
+import metif12.ramzara.dtls12
 
 mut c := dtls12.dial('127.0.0.1:4444', dtls12.default_config())!
 c.handshake()!
@@ -95,7 +97,7 @@ adds stateless HelloVerifyRequest cookies. Loss simulation for tests:
 ## PKI (`x509`)
 
 ```v
-import metif12.vtls.x509
+import metif12.ramzara.x509
 
 leaf := x509.parse_pem(text)!
 chain := x509.build_chain(leaf, intermediates, roots)!

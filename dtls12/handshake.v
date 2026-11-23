@@ -3,8 +3,8 @@
 // that can be found in the LICENSE file.
 
 // DTLS 1.2 handshake (RFC 6347 minimal, epoch 0/1, no 0-RTT).
-// Standalone: own suites/PRF/codecs; shares no code with net.tls or
-// net.tls12. Cookie exchange (HelloVerifyRequest) is optional and disabled
+// Standalone: own suites/PRF/codecs; shares no code with tls or
+// tls12. Cookie exchange (HelloVerifyRequest) is optional and disabled
 // by default; see Config.enable_cookie.
 module dtls12
 

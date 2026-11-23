@@ -1,10 +1,24 @@
-# vtls — pure-V TLS/PKI stack and OpenSSL replacement
+# RamzAra — pure-V TLS/PKI stack and OpenSSL replacement
 
-![CI](https://github.com/metif12/vtls/actions/workflows/ci.yml/badge.svg)
+**RamzAra (رمزآرا)** is a Persian compound meaning *one who arranges, creates, or adorns symbols and codes*.
+
+- **ramz (رمز):** Code, cipher, symbol, secret, or encoded meaning.
+- **ārā (آرا):** An element meaning adorning, arranging, or embellishing, derived from **ārāstan (آراستن)**, the Persian verb meaning *to adorn, decorate, or put in order*.
+
+Pronounced *ramz-ārā* (/ɾæmz.ɒːˈɾɒː/).
+
+The name evokes the art of giving structure and expression to symbols, patterns, and encoded information. It represents the craft of turning abstract symbols and complex structures into something organized, meaningful, and elegant.
+
+![CI](https://github.com/metif12/RamzAra/actions/workflows/ci.yml/badge.svg)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
+> **Renamed:** this repo was previously `metif12/vtls` (module
+> `metif12.vtls.*`, binary/API prefix `vtls`). Old GitHub links redirect,
+> but reinstall and repoint imports: `v install metif12.ramzara`, then
+> `import metif12.ramzara.*`.
+
 Pure-V TLS 1.3, TLS 1.2, DTLS 1.2, x509 PKI, PKCS#12, RSA, SLH-DSA —
-plus a `vtls` CLI and a stable C library. Extracted from
+plus a `ramzara` CLI and a stable C library. Extracted from
 [`vlang/v` PR #32052](https://github.com/vlang/v/pull/32052)
 (`tls-final` @ `15ba1ef81f`) and maintained here as a versioned
 [VPM](https://vlang.io) package.
@@ -18,7 +32,7 @@ plus a `vtls` CLI and a stable C library. Extracted from
 ## Install
 
 ```sh
-v install metif12.vtls
+v install metif12.ramzara
 ```
 
 Requires a V toolchain newer than 0.5.2 (uses `x.crypto.mldsa`-era
@@ -27,17 +41,17 @@ stdlib APIs); CI builds V at the pinned commit (see `V_PIN`).
 Manual install (or before the registry lists the package):
 
 ```sh
-git clone https://github.com/metif12/vtls ~/.vmodules/metif12/vtls
+git clone https://github.com/metif12/RamzAra ~/.vmodules/metif12/ramzara
 ```
 
-Note: `v install --git <url>` puts the repo at `~/.vmodules/vtls`
-(flat, no author segment); move it to `~/.vmodules/metif12/vtls` so
-`import metif12.vtls.*` resolves.
+Note: `v install --git <url>` puts the repo at `~/.vmodules/ramzara`
+(flat, no author segment); move it to `~/.vmodules/metif12/ramzara` so
+`import metif12.ramzara.*` resolves.
 
 ## Use
 
 ```v
-import metif12.vtls.tls
+import metif12.ramzara.tls
 
 mut c := tls.dial('example.com', 443, tls.Config{})!
 c.handshake()!
@@ -46,19 +60,20 @@ c.write('GET / HTTP/1.0\r\n\r\n'.bytes())!
 
 ```sh
 # issue + serve + fetch
-vtls req -newkey ec:p-256 -keyout key.pem -out cert.pem -subj /CN=localhost
-vtls s_server -accept 4433 -cert cert.pem -key key.pem &
-printf hello | vtls s_client -connect 127.0.0.1:4433 -CAfile cert.pem -brief
+ramzara req -newkey ec:p-256 -keyout key.pem -out cert.pem -subj /CN=localhost
+ramzara s_server -accept 4433 -cert cert.pem -key key.pem &
+printf hello | ramzara s_client -connect 127.0.0.1:4433 -CAfile cert.pem -brief
 ```
 
 ```c
-#include "vtls.h"
-VtlsConn *c = vtls_dial("example.com", 443, NULL, NULL, 0);
+#include "ramzara.h"
+RamzAraConn *c = ramzara_dial("example.com", 443, NULL, NULL, 0);
 ```
 
 Guides: [`docs/usage-v.md`](docs/usage-v.md),
 [`docs/usage-c.md`](docs/usage-c.md),
-[`docs/openssl-map.md`](docs/openssl-map.md). Goals: [`ROADMAP.md`](ROADMAP.md).
+[`docs/openssl-map.md`](docs/openssl-map.md),
+API: [`docs/api.md`](docs/api.md). Goals: [`ROADMAP.md`](ROADMAP.md).
 
 ## Layout
 
@@ -74,8 +89,8 @@ Guides: [`docs/usage-v.md`](docs/usage-v.md),
 | `mlkem/` | vendored ML-KEM (stdlib newer than 0.5.2 also has it) |
 | `kat/` | cross-primitive known-answer tests |
 | `toolkit/` | keygen + self-signed certs for the CLI and C API |
-| `cmd/vtls/` | `vtls` CLI (OpenSSL replacement) |
-| `capi/` + `c/` | C ABI shim + `vtls.h` + demo client |
+| `cmd/ramzara/` | `ramzara` CLI (OpenSSL replacement) |
+| `capi/` + `c/` | C ABI shim + `ramzara.h` + demo client |
 | `docs/` | usage guides, OpenSSL map |
 
 ## Test

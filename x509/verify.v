@@ -4,7 +4,7 @@ import crypto.ecdsa
 import crypto.ed25519
 import crypto.sha256
 import crypto.sha512
-import metif12.vtls.slh_dsa
+import metif12.ramzara.slh_dsa
 import crypto.subtle
 import math.big
 import time

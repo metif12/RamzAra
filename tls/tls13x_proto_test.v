@@ -4,14 +4,14 @@ import crypto.ecdsa
 import crypto.ed25519
 import crypto.pem
 import crypto.rand
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import encoding.hex
 import net
 import os
 import time
 import x.crypto.mldsa
-import metif12.vtls.mlkem
-import metif12.vtls.slh_dsa
+import metif12.ramzara.mlkem
+import metif12.ramzara.slh_dsa
 
 // tls13x_test_ecdsa_key generates a throwaway P-256 keypair for tests.
 fn tls13x_test_ecdsa_key() (ecdsa.PublicKey, ecdsa.PrivateKey) {

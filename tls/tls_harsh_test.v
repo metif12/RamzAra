@@ -2,7 +2,7 @@ module tls
 
 import crypto.ecdsa
 import crypto.pem
-import metif12.vtls.x509
+import metif12.ramzara.x509
 import time
 
 // ---------- minimal DER helpers (test-only) ----------
