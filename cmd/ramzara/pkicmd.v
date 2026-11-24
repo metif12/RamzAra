@@ -83,6 +83,16 @@ fn cmd_req(args []string) {
 	if dns_flag != '' {
 		dns = dns_flag.split(',')
 	}
+	if has_flag(args, 'new') {
+		// CSR mode: generate a key and a self-signed PKCS#10 request
+		// for the CA to sign (no certificate is issued here).
+		g := toolkit.generate_csr(kt, cn, dns) or { die('req: ${err}') }
+		secure_write_key(keyout, g.key_pem) or { die('req: cannot write ${keyout}: ${err}') }
+		os.write_file(out, g.csr_pem) or { die('req: cannot write ${out}: ${err}') }
+		println('key: ${keyout}')
+		println('csr: ${out}')
+		return
+	}
 	days := flag_value(args, 'days').int()
 	real_days := if days <= 0 { 365 } else { days }
 	g := toolkit.generate_self_signed(kt, cn, dns, real_days, has_flag(args, 'ca')) or {

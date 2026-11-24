@@ -120,6 +120,22 @@ fn test_toolkit_loopback_slh() ! {
 	loopback_echo('slh-shake-128s')!
 }
 
+fn test_toolkit_csr_rsa() ! {
+	g := generate_csr('rsa:2048', 'csr.example.com', ['csr.example.com'])!
+	assert g.key_pem.contains('PRIVATE KEY')
+	assert g.csr_pem.contains('CERTIFICATE REQUEST')
+	assert g.csr.common_name == 'csr.example.com'
+	assert g.csr.dns_names == ['csr.example.com']
+	g.csr.verify_self()!
+}
+
+fn test_toolkit_csr_ec() ! {
+	g := generate_csr('ec:p-256', 'csr.example.com', [])!
+	assert g.csr.common_name == 'csr.example.com'
+	assert g.csr.dns_names == ['csr.example.com']
+	g.csr.verify_self()!
+}
+
 fn test_toolkit_cert_text() ! {
 	g := generate_self_signed('ec:p-256', 'example.com', ['example.com', 'www.example.com'],
 		30, false)!

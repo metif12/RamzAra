@@ -178,6 +178,13 @@ pub fn (c &Certificate) public_key() !PublicKey {
 	}
 	// subjectPublicKeyInfo
 	spki := expect_tag(tbs_content[pos..], 0, 0x30, 'subjectPublicKeyInfo')!
+	return parse_spki(spki)
+}
+
+// parse_spki parses a SubjectPublicKeyInfo DER into a PublicKey.
+// Shared by certificate and CSR parsing so both accept exactly the
+// same key shapes.
+fn parse_spki(spki []u8) !PublicKey {
 	// parse spki: algorithm SEQUENCE, then BIT STRING
 	mut sp := 0
 	alg_id := expect_tag(spki[sp..], 0, 0x30, 'algorithm')!
@@ -348,6 +355,107 @@ pub fn (c &Certificate) public_key() !PublicKey {
 		return error('x509: unsupported EC curve')
 	}
 	return error('x509: unsupported public key algorithm')
+}
+
+// encode_spki serializes a PublicKey into a SubjectPublicKeyInfo DER.
+// It mirrors parse_spki: RSA carries NULL parameters, ECDSA carries the
+// curve OID, all other families carry absent parameters.
+pub fn encode_spki(pk PublicKey) ![]u8 {
+	match pk {
+		RsaPublicKey {
+			mut alg := []u8{}
+			for b in encode_oid(oid_rsa_encryption) { alg << b }
+			for b in der_tlv(0x05, []u8{}) { alg << b }
+			mut content := []u8{}
+			for b in der_seq(alg) { content << b }
+			for b in der_bitstr(pk.der) { content << b }
+			return der_seq(content)
+		}
+		EcdsaP256PublicKey {
+			return ec_spki(oid_prime256v1, pk.point)
+		}
+		EcdsaP384PublicKey {
+			return ec_spki(oid_secp384r1, pk.point)
+		}
+		EcdsaP521PublicKey {
+			return ec_spki(oid_secp521r1, pk.point)
+		}
+		MlDsa44PublicKey {
+			return bare_oid_spki(oid_mldsa_44, pk.raw)
+		}
+		MlDsa65PublicKey {
+			return bare_oid_spki(oid_mldsa_65, pk.raw)
+		}
+		MlDsa87PublicKey {
+			return bare_oid_spki(oid_mldsa_87, pk.raw)
+		}
+		SlhDsaSha2128sPublicKey {
+			return bare_oid_spki(oid_slh_dsa_sha2_128s, pk.raw)
+		}
+		SlhDsaSha2128fPublicKey {
+			return bare_oid_spki(oid_slh_dsa_sha2_128f, pk.raw)
+		}
+		SlhDsaSha2192sPublicKey {
+			return bare_oid_spki(oid_slh_dsa_sha2_192s, pk.raw)
+		}
+		SlhDsaSha2192fPublicKey {
+			return bare_oid_spki(oid_slh_dsa_sha2_192f, pk.raw)
+		}
+		SlhDsaSha2256sPublicKey {
+			return bare_oid_spki(oid_slh_dsa_sha2_256s, pk.raw)
+		}
+		SlhDsaSha2256fPublicKey {
+			return bare_oid_spki(oid_slh_dsa_sha2_256f, pk.raw)
+		}
+		SlhDsaShake128sPublicKey {
+			return bare_oid_spki(oid_slh_dsa_shake_128s, pk.raw)
+		}
+		SlhDsaShake128fPublicKey {
+			return bare_oid_spki(oid_slh_dsa_shake_128f, pk.raw)
+		}
+		SlhDsaShake192sPublicKey {
+			return bare_oid_spki(oid_slh_dsa_shake_192s, pk.raw)
+		}
+		SlhDsaShake192fPublicKey {
+			return bare_oid_spki(oid_slh_dsa_shake_192f, pk.raw)
+		}
+		SlhDsaShake256sPublicKey {
+			return bare_oid_spki(oid_slh_dsa_shake_256s, pk.raw)
+		}
+		SlhDsaShake256fPublicKey {
+			return bare_oid_spki(oid_slh_dsa_shake_256f, pk.raw)
+		}
+		Ed25519PublicKey {
+			return bare_oid_spki(oid_ed25519, pk.raw)
+		}
+	}
+}
+
+// ec_spki builds a SubjectPublicKeyInfo for an uncompressed EC point.
+fn ec_spki(curve_oid string, point []u8) ![]u8 {
+	if point.len == 0 || point[0] != 0x04 {
+		return error('x509: expected uncompressed EC point')
+	}
+	mut alg_content := []u8{}
+	for b in encode_oid(oid_ec_public_key) { alg_content << b }
+	for b in encode_oid(curve_oid) { alg_content << b }
+	alg := der_seq(alg_content)
+	mut content := []u8{}
+	for b in alg { content << b }
+	for b in der_bitstr(point) { content << b }
+	return der_seq(content)
+}
+
+// bare_oid_spki builds a SubjectPublicKeyInfo with absent parameters
+// (Ed25519, ML-DSA, SLH-DSA shape) holding raw key bytes.
+fn bare_oid_spki(alg_oid string, raw []u8) []u8 {
+	mut alg_content := []u8{}
+	for b in encode_oid(alg_oid) { alg_content << b }
+	alg := der_seq(alg_content)
+	mut content := []u8{}
+	for b in alg { content << b }
+	for b in der_bitstr(raw) { content << b }
+	return der_seq(content)
 }
 
 // der_oid decodes an OID TLV into a dotted string.

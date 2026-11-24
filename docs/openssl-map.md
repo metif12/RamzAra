@@ -9,7 +9,7 @@ is intentionally out of scope.
 |---|---|---|
 | `s_client -connect h:p` | `s_client -connect h:p` | + `-servername -CAfile -alpn -tls1_2 -insecure -reconnect -brief`; stdin relay, no interactive key renegotiation |
 | `s_server -accept p` | `s_server -accept p -cert f -key f` | echo or `-www`; `-Verify [-CAfile]` for mTLS; `-naccept` |
-| `req -x509 -newkey rsa:2048` | `req -newkey rsa:2048 -keyout k -out c` | types: rsa ec ed25519 ml-dsa-* slh-*; `-subj -dns -days -ca` |
+| `req -x509 -newkey rsa:2048` | `req -newkey rsa:2048 -keyout k -out c` | types: rsa ec ed25519 ml-dsa-* slh-*; `-subj -dns -days -ca`; `-new` writes a PKCS#10 CSR instead |
 | `x509 -in c -text` | `x509 -in c -text` | also `-subject -issuer -dates -fingerprint [-sha1]` |
 | `verify -CAfile b c` | `verify -CAfile b c` | + `-untrusted -hostname -crlfile -ocsp` |
 | `crl -in c -text` | `crl -in c -text` | PEM or DER |

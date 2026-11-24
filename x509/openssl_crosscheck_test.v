@@ -2,6 +2,7 @@ module x509
 
 import crypto.ecdsa
 import crypto.pem
+import encoding.base64
 import os
 import time
 import x.crypto.mldsa
@@ -106,8 +107,137 @@ fn test_openssl_cert_parses_under_v() {
 	panic('expected hostname mismatch')
 }
 
-// test_our_mldsa_der_parses_under_openssl checks V-generated ML-DSA
-// certificates parse under openssl for every variant.
+// test_our_csr_parses_and_verifies_under_openssl checks a V-generated
+// CSR parses under openssl and its self-signature verifies there.
+fn test_our_csr_parses_and_verifies_under_openssl() {
+	bin := openssl_bin()
+	if bin == '' {
+		return
+	}
+	_, priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('keygen: ${err}') }
+	point := priv.public_key() or { panic('pubkey: ${err}') }.bytes() or { panic('point: ${err}') }
+	spki := encode_spki(EcdsaP256PublicKey{ point: point }) or { panic('spki: ${err}') }
+	signer := CertSigner{
+		kind:       .ecdsa
+		ecdsa_priv: priv
+	}
+	opts := CsrOptions{
+		common_name: 'csr-crosscheck.example.com'
+		dns_names:   ['csr-crosscheck.example.com', 'www.csr-crosscheck.example.com']
+	}
+	csr, der := generate_csr(opts, spki, signer) or { panic('gen: ${err}') }
+	tmp := os.temp_dir() + '/ramzara_csr_self.pem'
+	os.write_file_array(tmp, pem_block('CERTIFICATE REQUEST', der)) or { panic('write: ${err}') }
+	defer {
+		os.rm(tmp) or {}
+	}
+	res := os.exec([bin, 'req', '-in', tmp, '-text', '-noout'])
+	assert res.exit_code == 0, 'openssl req -text failed: ${res.output}'
+	assert res.output.contains('csr-crosscheck.example.com')
+	ver := os.exec([bin, 'req', '-in', tmp, '-noout', '-verify'])
+	assert ver.exit_code == 0, 'openssl req -verify failed: ${ver.output}'
+	assert ver.output.contains('verify OK')
+	_ = csr
+}
+
+// test_openssl_csr_parses_and_verifies_in_ramzara checks an
+// openssl-generated RSA CSR parses here and its self-signature
+// verifies. This also covers the RSA path, which x509 unit tests
+// cannot generate natively (the rsa module lives above x509).
+fn test_openssl_csr_parses_and_verifies_in_ramzara() {
+	bin := openssl_bin()
+	if bin == '' {
+		return
+	}
+	dir := os.temp_dir()
+	keyf := dir + '/ramzara_csr_ossl_key.pem'
+	csrf := dir + '/ramzara_csr_ossl.csr'
+	defer {
+		os.rm(keyf) or {}
+		os.rm(csrf) or {}
+	}
+	gen := os.exec([bin, 'req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', keyf, '-out',
+		csrf, '-subj', '/CN=openssl.example.com', '-addext',
+		'subjectAltName=DNS:openssl.example.com,DNS:www.openssl.example.com'])
+	assert gen.exit_code == 0, 'openssl req -new failed: ${gen.output}'
+	text := os.read_file(csrf) or { panic('read csr: ${err}') }
+	csr := parse_csr_pem(text) or { panic('parse csr: ${err}') }
+	assert csr.common_name == 'openssl.example.com'
+	assert 'openssl.example.com' in csr.dns_names
+	csr.verify_self() or { panic('verify csr: ${err}') }
+}
+
+// test_openssl_signs_our_csr proves a real CA flow end to end: openssl
+// signs our CSR, and the issued leaf verifies here against the CA.
+fn test_openssl_signs_our_csr() {
+	bin := openssl_bin()
+	if bin == '' {
+		return
+	}
+	_, priv := ecdsa.generate_key(ecdsa.CurveOptions{}) or { panic('keygen: ${err}') }
+	point := priv.public_key() or { panic('pubkey: ${err}') }.bytes() or { panic('point: ${err}') }
+	spki := encode_spki(EcdsaP256PublicKey{ point: point }) or { panic('spki: ${err}') }
+	signer := CertSigner{
+		kind:       .ecdsa
+		ecdsa_priv: priv
+	}
+	opts := CsrOptions{
+		common_name: 'leaf.example.com'
+		dns_names:   ['leaf.example.com']
+	}
+	_, csr_der := generate_csr(opts, spki, signer) or { panic('gen: ${err}') }
+	dir := os.temp_dir()
+	csrf := dir + '/ramzara_ca_csr.pem'
+	caf := dir + '/ramzara_ca_cert.pem'
+	cak := dir + '/ramzara_ca_key.pem'
+	leaff := dir + '/ramzara_ca_leaf.pem'
+	defer {
+		os.rm(csrf) or {}
+		os.rm(caf) or {}
+		os.rm(cak) or {}
+		os.rm(leaff) or {}
+		os.rm(dir + '/ramzara_ca_cert.srl') or {}
+	}
+	os.write_file_array(csrf, pem_block('CERTIFICATE REQUEST', csr_der)) or { panic('write csr: ${err}') }
+	mkca := os.exec([bin, 'req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256',
+		'-keyout', cak, '-out', caf, '-days', '30', '-nodes', '-subj', '/CN=ramzara-test-ca'])
+	assert mkca.exit_code == 0, 'openssl req -x509 failed: ${mkca.output}'
+	sign := os.exec([bin, 'x509', '-req', '-in', csrf, '-CA', caf, '-CAkey', cak, '-CAcreateserial',
+		'-out', leaff, '-days', '30'])
+	assert sign.exit_code == 0, 'openssl x509 -req failed: ${sign.output}'
+	leaf_pem := os.read_file(leaff) or { panic('read leaf: ${err}') }
+	leaf := parse_pem(leaf_pem) or { panic('parse leaf: ${err}') }
+	assert leaf.common_name() == 'leaf.example.com'
+	ca_pem := os.read_file(caf) or { panic('read ca: ${err}') }
+	ca := parse_pem(ca_pem) or { panic('parse ca: ${err}') }
+	chain := build_chain(leaf, [], [ca]) or { panic('chain: ${err}') }
+	verify_chain(chain, VerifyOptions{ hostname: 'leaf.example.com' }) or {
+		panic('verify: ${err}')
+	}
+}
+
+// pem_block wraps DER in a PEM text block (local copy: test files must
+// stay self-contained because `v test -run-only` compiles only files
+// with matching test names).
+fn pem_block(block_type string, der []u8) []u8 {
+	mut out := '-----BEGIN ${block_type}-----\n'.bytes()
+	b64 := csr_pem_b64(der)
+	mut i := 0
+	for i < b64.len {
+		end := if i + 64 < b64.len { i + 64 } else { b64.len }
+		out << b64[i..end].bytes()
+		out << '\n'.bytes()
+		i = end
+	}
+	out << '-----END ${block_type}-----\n'.bytes()
+	return out
+}
+
+// csr_pem_b64 base64-encodes DER for PEM output.
+fn csr_pem_b64(der []u8) string {
+	return base64.encode(der)
+}
+
 // Skips without openssl; the same key material is covered without skips by
 // test_sig_vgen_mldsa_chains and test_sig_mldsa_chain in tls.
 fn test_our_mldsa_der_parses_under_openssl() {

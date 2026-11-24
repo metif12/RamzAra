@@ -42,34 +42,68 @@ and used only to exercise EC public-key extraction.
   resolves `metif12.ramzara.*`); tags `v0.1.0`–`v0.1.2` pushed.
   Registry search listing remains a manual step on vpm.vlang.io.
 
-## v1.1 (next)
+## Where RamzAra stands
 
-- Cache hot paths without behavior change: per-epoch AEAD objects
-  (record data path), parsed system roots/CRLs (handshake path),
-  FFDHE/P-256 curve params (big-int setup). Each lands only with
-  before/after test proof.
-- CI: split fast/slow test jobs (deterministic units vs loopback/PQC),
-  so the `VJOBS=2` handshake throttle stops serializing everything.
-- Re-measure `-prod` for CLI release binaries on the pinned toolchain
-  (locally verified at −15% size; left on default flags until CI proves it).
-- Leak gate `tls/leak_test.v` stays green: N verified loopbacks, RSS
-  must not grow (Linux-only; skips elsewhere). Proven both directions
-  on the pinned toolchain (passes on GC; fails without it at ~2.5 MiB
-  leaked per RSA session: 101008 KiB over 40 sessions). Full `-gc none`
-  stays out of scope: every allocation on a handshake path would need
-  freeing, including inside the V standard library.
-- `s_client`: interactive TTY mode (today it relays piped stdin).
-- `req`: CSRs (`-new`, no `-x509`) and CA signing (`-CA` with a real CA).
-- OCSP responder mode (`ocsp -index`, nonce handling).
-- Fuzz corpus in CI (short) + nightly long fuzz.
-- VPM registry search listing (manual step).
+Compared against OpenSSL 4.x, wolfSSL, BoringSSL, GnuTLS, mbedTLS,
+rustls, Go, Botan and NSS (feature matrices + release notes, Nov 2026):
+the TLS 1.3 core (handshake, resumption, 0-RTT, mTLS, tickets, PSK,
+ALPN, SNI, stapled OCSP) is at parity, and three areas lead the field —
+end-to-end SLH-DSA in TLS (all 12 sets), pure ML-KEM plus hybrid groups,
+and PKCS#12 parse + generate with pure-V RSA keygen. The gaps cluster
+in three places: PKI depth (in-repo CA flow, policy enforcement,
+CAA,
+CT-SCT, DANE, OCSP nonce/must-staple, CRL DP fetch), modern TLS 1.3
+extensions (ECH via HPKE, delegated credentials, compressed
+certificates, raw public keys), and tooling (`-starttls`, DTLS CLI
+modes, ts/ACME). DTLS 1.3 is the sharpest protocol opening: wolfSSL
+has it, OpenSSL does not.
 
-## Non-goals (carried over)
+`Most complete` means the most complete *modern* stack: no legacy
+cruft (SSLv3–TLS 1.1, 3DES, static RSA) races OpenSSL on compat and
+loses on security. That philosophy stays.
+
+## Roadmap to the most complete stack
+
+- [x] Phase 1 step 1 (CSR) done: `x509.generate_csr` /
+  `parse_csr_pem/der` / `verify_self` for every key family,
+  `toolkit.generate_csr`, `req -new`; self-signature verified at
+  generation and cross-checked against `openssl req` both directions
+  (plus `x509 -req` CA signing).
+- [ ] Phase 1, rest - PKI depth: in-repo CA signing (`-CA`) flow,
+  policy-constraints enforcement, CAA checks, CT-SCT validation, DANE
+  verify mode, OCSP nonce/must-staple/multi-staple, CRL DP/AIA
+  auto-fetch (opt-in) + delta CRLs. Goal: pass OpenSSL in PKI depth.
+- [ ] Phase 2 — modern TLS 1.3: HPKE (RFC 9180) then ECH (client,
+  then server), delegated credentials, compressed certificates, raw
+  public keys, record padding, ALPN in 1.2, ticket-based 1.2
+  resumption.
+- [ ] Phase 3 — PQC breadth: FN-DSA once finalized, Classic McEliece,
+  XMSS/LMS stateful (firmware story), X-Wing optional. Keeps the
+  SLH-DSA lead and completes the NIST set.
+- [ ] Phase 4 — transport future: DTLS 1.3 (leapfrogs OpenSSL) + CID,
+  then a QUIC-TLS API surface (full QUIC transport stays out of
+  scope; API first).
+- [ ] Phase 5 — tooling parity: `-starttls` for `s_client`, DTLS CLI
+  modes, ts/ACME client, `verify` purpose/policy flags, `s_client`
+  `-dane`/`-ct`, handshake + PQC entries in `speed`.
+- [ ] Phase 6 — assurance and ecosystem: differential fuzzing vs
+  OpenSSL/BoringSSL + wolfSSL/Go interop in CI, CNSA 2.0 / RFC 9325
+  conformance + `verify-profile` command, `SECURITY.md`, third-party
+  audit, registry listing, semver discipline.
+
+Carried over (still next, now inside the phases above): cache hot
+paths with before/after proof; CI fast/slow test split; `-prod`
+re-measure on the pinned toolchain; leak gate stays green; `s_client`
+interactive TTY; OCSP responder mode; fuzz corpus in CI + nightly long
+fuzz; VPM registry listing.
+
+## Non-goals (kept deliberately)
 
 3DES/RC4/export, MD5/SHA-1 chains, TLS < 1.2, ARIA/Camellia/SEED/IDEA,
 Ed448, static-RSA key exchange, GOST/SM, full async state machine,
-HSM/provider/PKCS#11, assembly acceleration, QUIC/ECH, CMS/S/MIME,
-C ABI / shared-library distribution (removed; pure V library + CLI).
+HSM/provider/PKCS#11, assembly acceleration, CMS/S/MIME,
+C ABI / shared-library distribution (removed; pure V library + CLI),
+full QUIC transport (TLS-for-QUIC API only, see phase 4).
 DTLS 1.2 stays anonymous-by-default unless the peer key is pinned.
 CBC length-timing residual and socket write-timeout limits are
 documented in `docs/usage-v.md`.

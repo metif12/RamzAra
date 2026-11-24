@@ -153,6 +153,148 @@ pub fn generate_self_signed(key_type string, cn string, dns []string, days int, 
 	}
 }
 
+// CsrPair bundles a generated private key with its self-signed CSR.
+pub struct CsrPair {
+pub:
+	key_pem string
+	csr_pem string
+	csr     x509.Csr
+}
+
+// generate_csr creates a key of the named type and a PKCS#10
+// certification request for `cn` (added to the SAN list when `dns`
+// is empty). It mirrors `openssl req -new`: the key stays local,
+// the CSR goes to the CA. The CSR self-signature is verified before
+// returning, so a malformed request fails here, not at the CA.
+pub fn generate_csr(key_type string, cn string, dns []string) !CsrPair {
+	kt := parse_key_type(key_type)!
+	mut sans := dns.clone()
+	if sans.len == 0 && cn != '' {
+		sans << cn
+	}
+	opts := x509.CsrOptions{
+		common_name: cn
+		dns_names:   sans
+	}
+	match kt {
+		.rsa_2048, .rsa_3072 {
+			bits := if kt == .rsa_2048 { 2048 } else { 3072 }
+			key := rsa.generate_key(rsa.KeyGenOptions{ bits: bits })!
+			pubkey := x509.RsaPublicKey{
+				der: key.public_key().to_pkcs1_der()
+			}
+			signer := x509.CertSigner{
+				kind:  .rsa
+				rsa_n: key.n
+				rsa_e: key.e
+				rsa_d: key.d
+			}
+			spki := x509.encode_spki(pubkey)!
+			csr, csr_der := x509.generate_csr(opts, spki, signer)!
+			key_pem := key.to_pem_pkcs8()!
+			return finish_csr_pair(csr, csr_der, key_pem)!
+		}
+		.ecdsa_p256, .ecdsa_p384, .ecdsa_p521 {
+			nid := match kt {
+				.ecdsa_p256 { ecdsa.Nid.prime256v1 }
+				.ecdsa_p384 { ecdsa.Nid.secp384r1 }
+				else { ecdsa.Nid.secp521r1 }
+			}
+			_, priv := ecdsa.generate_key(ecdsa.CurveOptions{ nid: nid }) or {
+				return err
+			}
+			point := priv.public_key()!.bytes()!
+			pubkey := match kt {
+				.ecdsa_p256 { x509.PublicKey(x509.EcdsaP256PublicKey{ point: point }) }
+				.ecdsa_p384 { x509.PublicKey(x509.EcdsaP384PublicKey{ point: point }) }
+				else { x509.PublicKey(x509.EcdsaP521PublicKey{ point: point }) }
+			}
+			signer := x509.CertSigner{
+				kind:       .ecdsa
+				ecdsa_priv: priv
+			}
+			spki := x509.encode_spki(pubkey)!
+			csr, csr_der := x509.generate_csr(opts, spki, signer)!
+			scalar := priv.bytes()!
+			key_pem := pem_encode('EC PRIVATE KEY', sec1_der(scalar, ec_curve_oid(kt)))!
+			return finish_csr_pair(csr, csr_der, key_pem)!
+		}
+		.ed25519 {
+			_, priv := ed25519.generate_key() or { return err }
+			pubkey := x509.PublicKey(x509.Ed25519PublicKey{ raw: priv.public_key() })
+			signer := x509.CertSigner{
+				kind:    .ed25519
+				ed_priv: priv
+			}
+			spki := x509.encode_spki(pubkey)!
+			csr, csr_der := x509.generate_csr(opts, spki, signer)!
+			key_pem := pem_encode('PRIVATE KEY', pkcs8_der(oid_ed25519(), priv.seed()))!
+			return finish_csr_pair(csr, csr_der, key_pem)!
+		}
+		.mldsa_44, .mldsa_65, .mldsa_87 {
+			kind := match kt {
+				.mldsa_44 { mldsa.Kind.ml_dsa_44 }
+				.mldsa_65 { mldsa.Kind.ml_dsa_65 }
+				else { mldsa.Kind.ml_dsa_87 }
+			}
+			priv := mldsa.PrivateKey.generate(kind)!
+			raw := priv.public_key().bytes()
+			pubkey := match kt {
+				.mldsa_44 { x509.PublicKey(x509.MlDsa44PublicKey{ raw: raw }) }
+				.mldsa_65 { x509.PublicKey(x509.MlDsa65PublicKey{ raw: raw }) }
+				else { x509.PublicKey(x509.MlDsa87PublicKey{ raw: raw }) }
+			}
+			signer := x509.CertSigner{
+				kind:       .mldsa
+				mldsa_priv: priv
+				mldsa_kind: kind
+			}
+			spki := x509.encode_spki(pubkey)!
+			csr, csr_der := x509.generate_csr(opts, spki, signer)!
+			key_pem := pem_encode('PRIVATE KEY', pkcs8_der(mldsa_oid(kind), priv.seed()))!
+			return finish_csr_pair(csr, csr_der, key_pem)!
+		}
+		else {
+			params := slh_params(kt)
+			priv, _ := slh_dsa.keygen(params)!
+			raw := priv.public_key().bytes()
+			pubkey := match kt {
+				.slh_shake_128s { x509.PublicKey(x509.SlhDsaShake128sPublicKey{ raw: raw }) }
+				.slh_shake_128f { x509.PublicKey(x509.SlhDsaShake128fPublicKey{ raw: raw }) }
+				.slh_shake_192s { x509.PublicKey(x509.SlhDsaShake192sPublicKey{ raw: raw }) }
+				.slh_shake_192f { x509.PublicKey(x509.SlhDsaShake192fPublicKey{ raw: raw }) }
+				.slh_shake_256s { x509.PublicKey(x509.SlhDsaShake256sPublicKey{ raw: raw }) }
+				.slh_shake_256f { x509.PublicKey(x509.SlhDsaShake256fPublicKey{ raw: raw }) }
+				.slh_sha2_128s { x509.PublicKey(x509.SlhDsaSha2128sPublicKey{ raw: raw }) }
+				.slh_sha2_128f { x509.PublicKey(x509.SlhDsaSha2128fPublicKey{ raw: raw }) }
+				.slh_sha2_192s { x509.PublicKey(x509.SlhDsaSha2192sPublicKey{ raw: raw }) }
+				.slh_sha2_192f { x509.PublicKey(x509.SlhDsaSha2192fPublicKey{ raw: raw }) }
+				.slh_sha2_256s { x509.PublicKey(x509.SlhDsaSha2256sPublicKey{ raw: raw }) }
+				else { x509.PublicKey(x509.SlhDsaSha2256fPublicKey{ raw: raw }) }
+			}
+			signer := x509.CertSigner{
+				kind:       .slh_dsa
+				slh_priv:   priv
+				slh_params: params
+			}
+			spki := x509.encode_spki(pubkey)!
+			csr, csr_der := x509.generate_csr(opts, spki, signer)!
+			key_pem := pem_encode('PRIVATE KEY', pkcs8_der(slh_oid(params), priv.bytes()))!
+			return finish_csr_pair(csr, csr_der, key_pem)!
+		}
+	}
+}
+
+// finish_csr_pair encodes the CSR DER as PEM and bundles the pair.
+fn finish_csr_pair(csr x509.Csr, csr_der []u8, key_pem string) !CsrPair {
+	csr_pem := pem_encode('CERTIFICATE REQUEST', csr_der)!
+	return CsrPair{
+		key_pem: key_pem
+		csr_pem: csr_pem
+		csr:     csr
+	}
+}
+
 // finish_pair encodes the certificate DER as PEM and bundles the pair.
 fn finish_pair(cert x509.Certificate, cert_der []u8, key_pem string) !Generated {
 	cert_pem := pem_encode('CERTIFICATE', cert_der)!

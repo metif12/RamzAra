@@ -120,6 +120,12 @@ d := pkcs12.decode(data, password)!        // DecodedPfx
 out := pkcs12.encode(key_der, certs, password, cfg)! // EncodeConfig
 ```
 
+CSR (PKCS#10) lives in `x509`: `generate_csr(opts, spki, signer)` /
+`parse_csr_pem` / `parse_csr_der` / `csr.verify_self()` cover every key
+family (ECDSA, Ed25519, ML-DSA, SLH-DSA, RSA); the self-signature is
+verified at generation and cross-checked against `openssl req` both
+ways (`-text`, `-verify`, plus `x509 -req` CA signing).
+
 ### `rsa` — keygen, codecs, self-signed certs
 
 ```v

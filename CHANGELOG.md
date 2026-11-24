@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — PKI: PKCS#10 CSRs
+
+- New: `x509.generate_csr` / `parse_csr_pem` / `parse_csr_der` /
+  `verify_self`, `x509.encode_spki`, `toolkit.generate_csr`,
+  `ramzara req -new` — CSRs for every key family (ECDSA, Ed25519,
+  ML-DSA, SLH-DSA, RSA), self-signature verified at generation and
+  cross-checked against `openssl req` both directions (including
+  `openssl x509 -req` CA signing of our CSRs).
+- Internal: `x509.parse_spki` factored out of certificate parsing so
+  certs and CSRs accept exactly the same key shapes.
+
 ## v0.1.0 (unreleased)
 
 Initial standalone release, extracted from the V project and
