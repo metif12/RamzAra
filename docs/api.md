@@ -1,9 +1,9 @@
 # RamzAra API reference
 
-V library (`import metif12.ramzara.<module>`), C ABI (`c/ramzara.h`),
-and CLI surface. Task guides live in `usage-v.md` (V), `usage-c.md`
-(C) and `openssl-map.md` (CLI command map); per-module notes in
-`tls/README.md`, `x509/README.md`, `mlkem/README.md`.
+V library (`import metif12.ramzara.<module>`) and CLI surface.
+Task guides live in `usage-v.md` (V) and `openssl-map.md` (CLI
+command map); per-module notes in `tls/README.md`, `x509/README.md`,
+`mlkem/README.md`.
 
 ## V library
 
@@ -148,7 +148,7 @@ variant-explicit `generate_keypair(variant)`, `encapsulate(pk)`,
 `decapsulate(ct, sk)` for `ml_kem_512/768/1024`, plus K-PKE /
 polynomial / NTT internals. See `mlkem/README.md`.
 
-### `toolkit` — keygen + self-signed certs for the CLI and C API
+### `toolkit` — keygen + self-signed certs for the CLI
 
 ```v
 import metif12.ramzara.toolkit
@@ -166,30 +166,6 @@ g := toolkit.generate_self_signed('ec:p-256', 'localhost', [], 365, false)!
 Provenance-locked vectors (RFC 6979/8017/8439/5869/2202/7748, NIST
 GCM/KEM/SLH-DSA vectors, OpenSSL cross-implementation oracles). No
 library API; documents what every primitive is pinned against.
-
-## C ABI (`c/ramzara.h`)
-
-Stable, C89-compatible header over `capi/ramzara_c.v`
-(`-shared -enable-globals`; Windows link adds
-`-Wl,--export-all-symbols`, import lib via `c/ramzara.def`).
-A single-file C form is checked in at `c/generated/ramzara.c`,
-refreshed by CI on every `master` push.
-
-| symbol | notes |
-|---|---|
-| `RamzAraConn *ramzara_dial(host, port, server_name, ca_file, insecure)` | TLS 1.3 + handshake; NULL on failure, see `ramzara_last_error()` |
-| `ramzara_read / ramzara_write / ramzara_close` | `0` = clean close, negative = error |
-| `ramzara_cipher_name / ramzara_resumed` | suite name into caller buffer; resumption flag |
-| `ramzara_listen(port, cert, key)` → `RamzAraListener *` / `ramzara_accept(l)` / `ramzara_listener_close(l)` | binds 127.0.0.1 |
-| `ramzara_generate_self_signed(key_type, cn, key_out, cert_out, days)` | mirrors `ramzara req -x509` |
-| `ramzara_verify(ca_bundle, leaf_pem, hostname, errbuf, errlen)` | `0` = chain verifies |
-| `ramzara_cert_text(cert_pem, out, outlen)` | human-readable summary |
-| `ramzara_last_error()` / `ramzara_version()` | thread-local detail / version string |
-
-Limits (v1): TLS 1.3 only over C (V API also has `tls12`, `dtls12`);
-no client-certificate (mTLS) parameters yet; all out-params are
-caller-owned buffers with explicit lengths (except `last_error` /
-`version`, valid until the next call on the same thread).
 
 ## CLI (`cmd/ramzara` → `ramzara <command>`)
 

@@ -12,8 +12,7 @@ maintained here as a versioned package.
   `tls/testdata` for the key-extraction test.
 - New: `toolkit/` (keygen + self-signed certs for every family, TLS
   loopback-proven), `cmd/ramzara/` CLI (s_client, s_server, req, x509,
-  verify, crl, ocsp, pkcs12, enc, dgst, rand, speed), `capi/` + `c/ramzara.h`
-  C ABI with demo client.
+  verify, crl, ocsp, pkcs12, enc, dgst, rand, speed).
 - New: `tls.listen_on(addr, cfg)` (the vendored `listen` binds
   loopback:0 only); `Conn.send_close_notify()` for clean EOF with
   strict peers (OpenSSL errors on a bare FIN).
@@ -29,11 +28,11 @@ maintained here as a versioned package.
   fix is also carried upstream, the SEC1 items are toolkit-only.
   (Follow-up: the standalone `rsa/cert_gen.v` copy kept the old
   strip-then-mask and now calls `x509.fresh_serial` instead.)
-- CI: fmt gate, 3-OS test matrix, OpenSSL interop, C-lib release.
-- C API now gates every push: `c-api` CI job builds the shared lib on
-  all three OSes and verifies the `ramzara_*` exports; `c/generated/`
-  holds the single-file C form of the C API, refreshed by CI on every
-  `master` push touching V/C sources.
+- CI: fmt gate, 3-OS test matrix, OpenSSL interop.
+- C support removed (was: `capi/` + `c/ramzara.h` C ABI with demo
+  client, `c/generated/` single-file C form, `c-api` CI job, C-lib
+  release workflow). The package is pure V (library + CLI) only;
+  no C sources, headers, or artifacts remain.
 - Project renamed `vtls` → `RamzAra`: module/binary `ramzara`
   (`metif12.ramzara.*`, `v install metif12.ramzara`), CLI `cmd/ramzara/`,
   C API `ramzara_*` in `c/ramzara.h` / `c/ramzara.def` (`RamzAraConn`,

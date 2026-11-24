@@ -125,4 +125,11 @@ wins; expiry of any chain certificate reports expired.
   codecs, self-signed certs.
 - `slh_dsa.keygen(params)` for all 12 FIPS 205 sets.
 - `toolkit.generate_self_signed(key_type, cn, dns, days, is_ca)`
-  powers the CLI and the C API; `toolkit.cert_text(cert)` renders it.
+  powers the CLI; `toolkit.cert_text(cert)` renders it.
+
+## Limits
+
+- Accepted residual: CBC length-timing in the TLS 1.2/CBC path.
+- Socket-level write timeouts need a V standard library socket change
+  upstream (`Conn.set_read_timeout` stays a no-op placeholder; use
+  `apply_timeouts` / `set_conn_timeouts`).

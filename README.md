@@ -18,7 +18,7 @@ The name evokes the art of giving structure and expression to symbols, patterns,
 > `import metif12.ramzara.*`.
 
 Pure-V TLS 1.3, TLS 1.2, DTLS 1.2, x509 PKI, PKCS#12, RSA, SLH-DSA —
-plus a `ramzara` CLI and a stable C library. Extracted from
+plus a `ramzara` CLI. Extracted from
 the V project and maintained here as a versioned
 [VPM](https://vlang.io) package.
 
@@ -64,13 +64,7 @@ ramzara s_server -accept 4433 -cert cert.pem -key key.pem &
 printf hello | ramzara s_client -connect 127.0.0.1:4433 -CAfile cert.pem -brief
 ```
 
-```c
-#include "ramzara.h"
-RamzAraConn *c = ramzara_dial("example.com", 443, NULL, NULL, 0);
-```
-
 Guides: [`docs/usage-v.md`](docs/usage-v.md),
-[`docs/usage-c.md`](docs/usage-c.md),
 [`docs/openssl-map.md`](docs/openssl-map.md),
 API: [`docs/api.md`](docs/api.md). Goals: [`ROADMAP.md`](ROADMAP.md).
 
@@ -87,10 +81,8 @@ API: [`docs/api.md`](docs/api.md). Goals: [`ROADMAP.md`](ROADMAP.md).
 | `slh_dsa/` | SLH-DSA, all 12 FIPS 205 sets |
 | `mlkem/` | vendored ML-KEM (stdlib newer than 0.5.2 also has it) |
 | `kat/` | cross-primitive known-answer tests |
-| `toolkit/` | keygen + self-signed certs for the CLI and C API |
+| `toolkit/` | keygen + self-signed certs for the CLI |
 | `cmd/ramzara/` | `ramzara` CLI (OpenSSL replacement) |
-| `capi/` + `c/` | C ABI shim + `ramzara.h` + demo client |
-| `c/generated/` | single-file C form of the C API, refreshed by CI on every push |
 | `docs/` | usage guides, OpenSSL map |
 
 ## Test

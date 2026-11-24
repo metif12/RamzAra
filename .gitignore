@@ -3,21 +3,12 @@
 /ramzara
 cmd/ramzara/ramzara
 cmd/ramzara/ramzara.exe
-capi/demo/demo
-capi/demo/demo.exe
 # Build output
 build/
-# C artifacts from `v -o`
+# V C-backend droppings
 *.c.bak
-# Local release/interop outputs (never commit; see CI workflows)
+# Local interop output (never commit; see CI workflows)
 /ramzara-bin
-/demo
-/demo.exe
-/*.so
-/*.dll
-/*.dylib
-/*.dll.a
-/dist/
 # Editor / OS
 .vscode/
 .idea/

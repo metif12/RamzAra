@@ -16,8 +16,7 @@ import paths rewritten (`crypto.x509` → `metif12.ramzara.x509`, etc.) and
 fixture vendored into `tls/testdata` with provenance noted below).
 
 In November 2026 the project was renamed `vtls` → `RamzAra`
-(module/binary `ramzara`, C API `ramzara_*`, GitHub
-`metif12/RamzAra`). The old GitHub URL redirects; code references were
+(module/binary `ramzara`, GitHub `metif12/RamzAra`). The old GitHub URL redirects; code references were
 renamed without behavior change (see CHANGELOG.md).
 
 Fixture provenance: `tls/testdata/quiche_p256_handshake_server_cert.pem`
@@ -30,45 +29,35 @@ and used only to exercise EC public-key extraction.
   `rsa`, `slh_dsa`, `mlkem`, `kat`, `toolkit`
 - [x] CLI: `s_client s_server req x509 verify crl ocsp pkcs12 enc dgst
   rand speed` (full scope)
-- [x] C ABI: `c/ramzara.h` + `capi/` shim + `c/demo.c`, release artifacts
-  (prebuilt libs + header + demo)
-- [x] Docs: usage-v, usage-c, openssl-map, api, module READMEs, goals
-- [x] CI: fmt/vet/test matrix + OpenSSL interop + C-lib release
-  (concurrency cancel, timeouts, no fail-fast on libs, cache
-  restore-keys, `.git`-free module copies, guarded strip, artifact
-  gitignore — see appendix B)
+- [x] C ABI removed: was `c/ramzara.h` + `capi/` shim + `c/demo.c`
+  with prebuilt-lib release artifacts; the package is pure V now
+  (library + CLI), no C sources or artifacts remain
+- [x] Docs: usage-v, openssl-map, api, module READMEs, goals
+- [x] CI: fmt/vet/test matrix + OpenSSL interop
+  (concurrency cancel, timeouts, cache restore-keys, `.git`-free
+  module copies, artifact gitignore — see appendix B)
 - [x] Rename `vtls` → `RamzAra` shipped end to end: code, docs, file
   names, GitHub repo + metadata, README notice (old URL redirects)
 - [x] VPM install verified (`v install --git https://github.com/metif12/RamzAra`
-  resolves `metif12.ramzara.*`); tags `v0.1.0`–`v0.1.2` pushed (each tag
-  triggers the C-lib release). Registry search listing remains a manual
-  step on vpm.vlang.io.
+  resolves `metif12.ramzara.*`); tags `v0.1.0`–`v0.1.2` pushed.
+  Registry search listing remains a manual step on vpm.vlang.io.
 
 ## v1.1 (next)
 
-- C API: TLS 1.2 + DTLS 1.2 bindings, mTLS parameters, keylog hook.
-- Narrow the Windows DLL export table to the `ramzara.def` allowlist
-  (today `--export-all-symbols` ships the whole V runtime).
 - Cache hot paths without behavior change: per-epoch AEAD objects
   (record data path), parsed system roots/CRLs (handshake path),
   FFDHE/P-256 curve params (big-int setup). Each lands only with
   before/after test proof.
 - CI: split fast/slow test jobs (deterministic units vs loopback/PQC),
   so the `VJOBS=2` handshake throttle stops serializing everything.
-- Re-measure `-prod` for release artifacts on the pinned toolchain
-  (blocked: `-prod` + `-shared` + `-Wimpure-v` trips the backend gate
-  on older toolchains; CLI-only `-prod` is verified at −15% size).
-- True `-gc none` support as a staged project (handles alone are ~1%
-  of per-connection allocations; flipping the flag without converting
-  the tree leaks everything and risks UAF at the ABI boundary):
-  1. leak gate `tls/leak_test.v` — N verified loopbacks, RSS must not
-      grow (Linux-only; skips elsewhere). Proven both directions on the
-      pinned toolchain: the leak gate passes on GC and fails without it
-      (~2.5 MiB leaked per RSA session over 40 sessions: 101008 KiB total).
-      The port is done when the gate passes with GC off,
-  2. convert module by module with the gate green each step, starting
-     at `capi/` (explicit free on close) and working inward,
-  3. only then flip the release/CI flags.
+- Re-measure `-prod` for CLI release binaries on the pinned toolchain
+  (locally verified at −15% size; left on default flags until CI proves it).
+- Leak gate `tls/leak_test.v` stays green: N verified loopbacks, RSS
+  must not grow (Linux-only; skips elsewhere). Proven both directions
+  on the pinned toolchain (passes on GC; fails without it at ~2.5 MiB
+  leaked per RSA session: 101008 KiB over 40 sessions). Full `-gc none`
+  stays out of scope: every allocation on a handshake path would need
+  freeing, including inside the V standard library.
 - `s_client`: interactive TTY mode (today it relays piped stdin).
 - `req`: CSRs (`-new`, no `-x509`) and CA signing (`-CA` with a real CA).
 - OCSP responder mode (`ocsp -index`, nonce handling).
@@ -79,10 +68,11 @@ and used only to exercise EC public-key extraction.
 
 3DES/RC4/export, MD5/SHA-1 chains, TLS < 1.2, ARIA/Camellia/SEED/IDEA,
 Ed448, static-RSA key exchange, GOST/SM, full async state machine,
-HSM/provider/PKCS#11, assembly acceleration, QUIC/ECH, CMS/S/MIME.
+HSM/provider/PKCS#11, assembly acceleration, QUIC/ECH, CMS/S/MIME,
+C ABI / shared-library distribution (removed; pure V library + CLI).
 DTLS 1.2 stays anonymous-by-default unless the peer key is pinned.
 CBC length-timing residual and socket write-timeout limits are
-documented in usage-c.md.
+documented in `docs/usage-v.md`.
 
 ## Appendix A: CI hardening log
 
@@ -210,21 +200,15 @@ Landed and proven:
 - `pkcs12`: `hmac.equal` called directly; `verify_hmac` wrapper and
   the now-unused import removed. Proven by `pkcs12` suite.
 - CI: `concurrency.cancel-in-progress`, per-job `timeout-minutes`,
-  `fail-fast: false` on lib builds, cache `restore-keys`, `.git`
-  excluded from `.vmodules` copies, guarded `strip` + sizes in the
-  release job, artifact names in `.gitignore`. Zero job-structure
-  change, so nothing to re-prove beyond the next green board.
+  cache `restore-keys`, `.git` excluded from `.vmodules` copies,
+  artifact names in `.gitignore`. Zero job-structure change, so nothing
+  to re-prove beyond the next green board.
 - Measured baselines: CLI 4,557,312 B default vs 3,847,633 B with
   `-prod` (−15.6%, behavior identical). CLI `-prod` guidance is in
   CONTRIBUTING.md.
 
 Deliberately deferred (with reason):
 
-- `-prod` for the C shared libs: `-prod` + `-shared` + `-Wimpure-v`
-  trips the stdlib backend gate on older toolchains, and the pinned
-  toolchain cannot be verified from here. Re-measure there first.
-- Windows export-table narrowing to `ramzara.def`: changes the link,
-  only provable by the release job itself. Queued for a tag run.
 - Per-epoch AEAD caching, roots/CRL caching, P-256/FFDHE param
   caching, transcript/flight copy reduction: all real wins from the
   audit, each needs its module suite green before/after. Queued as

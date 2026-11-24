@@ -34,23 +34,22 @@ v -Wimpure-v -enable-globals -silent test tls/ tls12/ dtls12/ x509/ \
 # the CLI must also build on all three OSes
 v -o ramzara cmd/ramzara
 # release binaries: -prod shrinks the CLI ~15% with identical behavior
-# (measured 4,557,312 -> 3,847,633 bytes); the C shared libs stay on the
-# plain flags in c-lib-release.yml because -prod interacts with the
-# -Wimpure-v backend gate there — re-measure before changing that.
+# (measured 4,557,312 -> 3,847,633 bytes); keep default flags until CI
+# proves -prod on the pinned toolchain.
 # formatting is a CI gate: run before every commit
 v fmt -w <every .v file you touched>
-v fmt -l tls/ tls12/ dtls12/ x509/ pkcs12/ slh_dsa/ rsa/ kat/ mlkem/ toolkit/ cmd/ capi/
+v fmt -l tls/ tls12/ dtls12/ x509/ pkcs12/ slh_dsa/ rsa/ kat/ mlkem/ toolkit/ cmd/
 ```
 
 Rules: pure V in module code (`-Wimpure-v` clean), verify every fix by
 execution, test-adequacy fixes are test-only unless a lens proves a
-source bug, and never widen `capi/` without updating `c/ramzara.h`.
+source bug.
 
 ## Origin
 
 This package was extracted from the V project's TLS/PKI stack and is
-now maintained independently: `toolkit/`, `cmd/`, `capi/`, `c/`,
-`docs/` are the package's own layer on top of the ported modules.
+now maintained independently: `toolkit/`, `cmd/`, and `docs/` are the
+package's own layer on top of the ported modules.
 Upstream syncs are not planned; fixes and features land here directly
 and are recorded in CHANGELOG.md (bump `V_PIN` in CI when the required
 toolchain moves).
